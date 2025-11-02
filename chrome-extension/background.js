@@ -72,24 +72,29 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 
     if (prompts[index]) {
       const promptText = prompts[index].text;
+      const promptName = prompts[index].name;
 
-      // Copy to clipboard
       try {
-        await navigator.clipboard.writeText(promptText);
+        // Copy to clipboard by injecting script into the page
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          func: copyToClipboard,
+          args: [promptText]
+        });
 
-        // Show notification (optional - will work without icon)
+        // Show notification
         if (chrome.notifications) {
           chrome.notifications.create({
             type: 'basic',
             title: 'Prompt Copied!',
-            message: `"${prompts[index].name}" copied to clipboard`,
+            message: `"${promptName}" copied to clipboard`,
             priority: 0
           });
         }
 
         // Insert into the active text field if on an editable element
         if (info.editable) {
-          chrome.scripting.executeScript({
+          await chrome.scripting.executeScript({
             target: { tabId: tab.id },
             func: insertText,
             args: [promptText]
@@ -97,10 +102,42 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         }
       } catch (error) {
         console.error('Failed to copy prompt:', error);
+        // Fallback: at least try to insert if it's an editable field
+        if (info.editable) {
+          try {
+            await chrome.scripting.executeScript({
+              target: { tabId: tab.id },
+              func: insertText,
+              args: [promptText]
+            });
+          } catch (e) {
+            console.error('Failed to insert text:', e);
+          }
+        }
       }
     }
   }
 });
+
+// Function to copy text to clipboard (runs in page context)
+function copyToClipboard(text) {
+  navigator.clipboard.writeText(text).catch(err => {
+    console.error('Clipboard write failed:', err);
+    // Fallback method using deprecated document.execCommand
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+    try {
+      document.execCommand('copy');
+    } catch (e) {
+      console.error('Fallback copy failed:', e);
+    }
+    document.body.removeChild(textarea);
+  });
+}
 
 // Function to insert text into active element
 function insertText(text) {
