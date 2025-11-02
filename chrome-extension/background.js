@@ -81,16 +81,6 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
           func: insertOrPasteText,
           args: [promptText]
         });
-
-        // Show notification
-        if (chrome.notifications) {
-          chrome.notifications.create({
-            type: 'basic',
-            title: 'Prompt Inserted!',
-            message: `"${promptName}" inserted into page`,
-            priority: 0
-          });
-        }
       } catch (error) {
         console.error('Failed to insert prompt:', error);
       }
@@ -159,14 +149,3 @@ function insertOrPasteText(text) {
     }
   }
 }
-
-// Add permission for notifications
-chrome.permissions.contains({
-  permissions: ['notifications']
-}, (result) => {
-  if (!result) {
-    chrome.permissions.request({
-      permissions: ['notifications']
-    });
-  }
-});
