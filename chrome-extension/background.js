@@ -5,12 +5,12 @@ chrome.runtime.onInstalled.addListener(() => {
 
 // Listen for storage changes and update context menu
 chrome.storage.onChanged.addListener((changes, namespace) => {
-  if (namespace === 'sync' && changes.prompts) {
+  if (namespace === 'sync' && (changes.prompts || changes.folders)) {
     createContextMenus();
   }
 });
 
-// Create context menus based on saved prompts
+// Create context menus based on saved prompts and folders
 async function createContextMenus() {
   // Remove all existing context menus
   await chrome.contextMenus.removeAll();
@@ -22,9 +22,10 @@ async function createContextMenus() {
     contexts: ['all']
   });
 
-  // Get saved prompts
-  const data = await chrome.storage.sync.get(['prompts']);
+  // Get saved prompts and folders
+  const data = await chrome.storage.sync.get(['prompts', 'folders']);
   const prompts = data.prompts || [];
+  const folders = data.folders || [];
 
   if (prompts.length === 0) {
     // Show a message if no prompts are saved
@@ -36,14 +37,32 @@ async function createContextMenus() {
       enabled: false
     });
   } else {
-    // Create menu item for each prompt
-    prompts.forEach((prompt, index) => {
-      chrome.contextMenus.create({
-        id: `prompt-${index}`,
-        parentId: 'llm-prompt-manager',
-        title: prompt.name,
-        contexts: ['all']
-      });
+    // Group prompts by folder
+    folders.forEach(folder => {
+      const folderPrompts = prompts.filter(p => p.folderId === folder.id);
+
+      if (folderPrompts.length > 0) {
+        // Create folder submenu
+        chrome.contextMenus.create({
+          id: `folder-${folder.id}`,
+          parentId: 'llm-prompt-manager',
+          title: `📁 ${folder.name}`,
+          contexts: ['all']
+        });
+
+        // Add prompts under this folder
+        folderPrompts.forEach((prompt, promptIndex) => {
+          // Find actual index in full prompts array
+          const actualIndex = prompts.findIndex(p => p === prompt);
+
+          chrome.contextMenus.create({
+            id: `prompt-${actualIndex}`,
+            parentId: `folder-${folder.id}`,
+            title: prompt.name,
+            contexts: ['all']
+          });
+        });
+      }
     });
   }
 

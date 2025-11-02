@@ -32,6 +32,101 @@ h2 {
   letter-spacing: 0.5px;
 }
 
+/* Folder section */
+.folder-section {
+  background: white;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.folder-management {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+#newFolderName {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 13px;
+  font-family: inherit;
+}
+
+#newFolderName:focus {
+  outline: none;
+  border-color: #4285f4;
+}
+
+.btn-folder {
+  padding: 8px 16px;
+  background: #34a853;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.btn-folder:hover {
+  background: #2d8e47;
+}
+
+.folders-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.folder-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: #f1f3f4;
+  border-radius: 16px;
+  font-size: 12px;
+  color: #333;
+}
+
+.folder-tag.default {
+  background: #e8f0fe;
+  color: #1967d2;
+}
+
+.folder-delete {
+  cursor: pointer;
+  color: #ea4335;
+  font-weight: bold;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.folder-delete:hover {
+  color: #d33426;
+}
+
+.folder-select, .folder-filter {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  margin-bottom: 10px;
+  font-family: inherit;
+  background: white;
+}
+
+.folder-select:focus, .folder-filter:focus {
+  outline: none;
+  border-color: #4285f4;
+}
+
 /* Add section */
 .add-section {
   background: white;
@@ -134,6 +229,25 @@ button {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
+.prompts-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.prompts-header h2 {
+  margin-bottom: 0;
+}
+
+.folder-filter {
+  width: auto;
+  min-width: 150px;
+  margin-bottom: 0;
+  font-size: 12px;
+  padding: 6px 10px;
+}
+
 #promptsList {
   max-height: 300px;
   overflow-y: auto;
@@ -168,6 +282,16 @@ button {
 .prompt-actions {
   display: flex;
   gap: 4px;
+}
+
+.folder-badge {
+  font-size: 10px;
+  color: #5f6368;
+  margin-bottom: 6px;
+  padding: 2px 6px;
+  background: #f1f3f4;
+  border-radius: 3px;
+  display: inline-block;
 }
 
 .prompt-text {
