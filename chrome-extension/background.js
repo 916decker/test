@@ -19,7 +19,7 @@ async function createContextMenus() {
   chrome.contextMenus.create({
     id: 'llm-prompt-manager',
     title: 'LLM Prompts',
-    contexts: ['editable', 'selection']
+    contexts: ['all']
   });
 
   // Get saved prompts
@@ -32,7 +32,7 @@ async function createContextMenus() {
       id: 'no-prompts',
       parentId: 'llm-prompt-manager',
       title: 'No prompts saved yet',
-      contexts: ['editable', 'selection'],
+      contexts: ['all'],
       enabled: false
     });
   } else {
@@ -42,7 +42,7 @@ async function createContextMenus() {
         id: `prompt-${index}`,
         parentId: 'llm-prompt-manager',
         title: prompt.name,
-        contexts: ['editable', 'selection']
+        contexts: ['all']
       });
     });
   }
@@ -52,7 +52,7 @@ async function createContextMenus() {
     id: 'manage-prompts',
     parentId: 'llm-prompt-manager',
     title: '⚙️ Manage Prompts',
-    contexts: ['editable', 'selection']
+    contexts: ['all']
   });
 }
 
