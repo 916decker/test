@@ -75,10 +75,10 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
       const promptName = prompts[index].name;
 
       try {
-        // Copy to clipboard by injecting script into the page
+        // Insert/paste the prompt directly into the page
         await chrome.scripting.executeScript({
           target: { tabId: tab.id },
-          func: copyToClipboard,
+          func: insertOrPasteText,
           args: [promptText]
         });
 
@@ -86,87 +86,76 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         if (chrome.notifications) {
           chrome.notifications.create({
             type: 'basic',
-            title: 'Prompt Copied!',
-            message: `"${promptName}" copied to clipboard`,
+            title: 'Prompt Inserted!',
+            message: `"${promptName}" inserted into page`,
             priority: 0
           });
         }
-
-        // Insert into the active text field if on an editable element
-        if (info.editable) {
-          await chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            func: insertText,
-            args: [promptText]
-          });
-        }
       } catch (error) {
-        console.error('Failed to copy prompt:', error);
-        // Fallback: at least try to insert if it's an editable field
-        if (info.editable) {
-          try {
-            await chrome.scripting.executeScript({
-              target: { tabId: tab.id },
-              func: insertText,
-              args: [promptText]
-            });
-          } catch (e) {
-            console.error('Failed to insert text:', e);
-          }
-        }
+        console.error('Failed to insert prompt:', error);
       }
     }
   }
 });
 
-// Function to copy text to clipboard (runs in page context)
-function copyToClipboard(text) {
-  // Use the more reliable fallback method that works everywhere
-  const textarea = document.createElement('textarea');
-  textarea.value = text;
-  textarea.style.position = 'fixed';
-  textarea.style.top = '0';
-  textarea.style.left = '0';
-  textarea.style.width = '2em';
-  textarea.style.height = '2em';
-  textarea.style.padding = '0';
-  textarea.style.border = 'none';
-  textarea.style.outline = 'none';
-  textarea.style.boxShadow = 'none';
-  textarea.style.background = 'transparent';
-  document.body.appendChild(textarea);
-  textarea.focus();
-  textarea.select();
+// Function to insert or paste text into page (runs in page context)
+function insertOrPasteText(text) {
+  // Try to find the active/focused element first
+  let targetElement = document.activeElement;
 
-  try {
-    const successful = document.execCommand('copy');
-    if (!successful) {
-      console.error('Copy command was unsuccessful');
-    }
-  } catch (err) {
-    console.error('Unable to copy:', err);
-  }
+  // Check if active element is editable
+  const isEditable = targetElement && (
+    targetElement.tagName === 'TEXTAREA' ||
+    targetElement.tagName === 'INPUT' ||
+    targetElement.isContentEditable
+  );
 
-  document.body.removeChild(textarea);
-}
-
-// Function to insert text into active element
-function insertText(text) {
-  const activeElement = document.activeElement;
-  if (activeElement && (activeElement.tagName === 'TEXTAREA' || activeElement.tagName === 'INPUT' || activeElement.isContentEditable)) {
-    if (activeElement.isContentEditable) {
-      // For contenteditable elements
+  if (isEditable) {
+    // Insert into the focused editable element
+    if (targetElement.isContentEditable) {
+      // For contenteditable elements (like rich text editors)
       document.execCommand('insertText', false, text);
     } else {
-      // For input and textarea
-      const start = activeElement.selectionStart;
-      const end = activeElement.selectionEnd;
-      const currentValue = activeElement.value;
-      activeElement.value = currentValue.substring(0, start) + text + currentValue.substring(end);
-      activeElement.selectionStart = activeElement.selectionEnd = start + text.length;
+      // For input and textarea elements
+      const start = targetElement.selectionStart || 0;
+      const end = targetElement.selectionEnd || 0;
+      const currentValue = targetElement.value || '';
+      targetElement.value = currentValue.substring(0, start) + text + currentValue.substring(end);
+      targetElement.selectionStart = targetElement.selectionEnd = start + text.length;
 
-      // Trigger input event for frameworks that listen to it
-      activeElement.dispatchEvent(new Event('input', { bubbles: true }));
+      // Trigger input event for frameworks (React, Vue, etc.)
+      targetElement.dispatchEvent(new Event('input', { bubbles: true }));
+      targetElement.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+  } else {
+    // No focused editable element - find the first available text input on the page
+    const textInputs = document.querySelectorAll('textarea, input[type="text"], [contenteditable="true"]');
+
+    if (textInputs.length > 0) {
+      // Focus and insert into the first text input found
+      const firstInput = textInputs[0];
+      firstInput.focus();
+
+      if (firstInput.isContentEditable) {
+        document.execCommand('insertText', false, text);
+      } else {
+        firstInput.value = (firstInput.value || '') + text;
+        firstInput.dispatchEvent(new Event('input', { bubbles: true }));
+        firstInput.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    } else {
+      // Last resort: copy to clipboard using the old reliable method
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.top = '0';
+      textarea.style.left = '0';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
     }
   }
 }
