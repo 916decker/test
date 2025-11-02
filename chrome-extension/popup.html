@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>LLM Prompt Manager</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <h1>🤖 LLM Prompt Manager</h1>
+
+    <div class="add-section">
+      <h2>Add New Prompt</h2>
+      <input type="text" id="promptName" placeholder="Prompt name (e.g., 'Scrutinize Answer')" />
+      <textarea id="promptText" placeholder="Enter your prompt here..."></textarea>
+      <button id="addPrompt" class="btn-primary">Add Prompt</button>
+    </div>
+
+    <div class="prompts-section">
+      <h2>Your Prompts</h2>
+      <div id="promptsList"></div>
+      <div id="emptyState" class="empty-state">
+        No prompts saved yet. Add one above!
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

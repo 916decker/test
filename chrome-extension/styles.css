@@ -1,0 +1,239 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  width: 450px;
+  max-height: 600px;
+  overflow-y: auto;
+  background: #f5f5f5;
+}
+
+.container {
+  padding: 20px;
+}
+
+h1 {
+  font-size: 20px;
+  margin-bottom: 20px;
+  color: #333;
+  text-align: center;
+}
+
+h2 {
+  font-size: 14px;
+  margin-bottom: 12px;
+  color: #666;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Add section */
+.add-section {
+  background: white;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+#promptName {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  margin-bottom: 10px;
+  font-family: inherit;
+}
+
+#promptText {
+  width: 100%;
+  min-height: 100px;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  margin-bottom: 10px;
+  font-family: inherit;
+  resize: vertical;
+}
+
+#promptName:focus,
+#promptText:focus {
+  outline: none;
+  border-color: #4285f4;
+}
+
+/* Buttons */
+button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background: #4285f4;
+  color: white;
+  width: 100%;
+  padding: 10px;
+}
+
+.btn-primary:hover {
+  background: #3367d6;
+}
+
+.btn-copy {
+  background: #34a853;
+  color: white;
+  font-size: 11px;
+  padding: 6px 10px;
+}
+
+.btn-copy:hover {
+  background: #2d8e47;
+}
+
+.btn-edit {
+  background: #fbbc04;
+  color: #333;
+  font-size: 11px;
+  padding: 6px 10px;
+  margin-left: 6px;
+}
+
+.btn-edit:hover {
+  background: #f9ab00;
+}
+
+.btn-delete {
+  background: #ea4335;
+  color: white;
+  font-size: 11px;
+  padding: 6px 10px;
+  margin-left: 6px;
+}
+
+.btn-delete:hover {
+  background: #d33426;
+}
+
+/* Prompts section */
+.prompts-section {
+  background: white;
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+#promptsList {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.prompt-card {
+  background: #f8f9fa;
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  border: 1px solid #e8eaed;
+}
+
+.prompt-card:last-child {
+  margin-bottom: 0;
+}
+
+.prompt-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.prompt-header h3 {
+  font-size: 14px;
+  color: #333;
+  font-weight: 600;
+  flex: 1;
+}
+
+.prompt-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.prompt-text {
+  font-size: 12px;
+  color: #666;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 60px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Empty state */
+.empty-state {
+  text-align: center;
+  color: #999;
+  padding: 20px;
+  font-size: 13px;
+  display: none;
+}
+
+/* Toast notifications */
+.toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: #333;
+  color: white;
+  padding: 12px 20px;
+  border-radius: 4px;
+  font-size: 13px;
+  opacity: 0;
+  transition: all 0.3s ease;
+  z-index: 1000;
+}
+
+.toast.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+.toast-error {
+  background: #ea4335;
+}
+
+.toast-success {
+  background: #34a853;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}

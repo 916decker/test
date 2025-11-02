@@ -1,10 +1,11 @@
-# 📁 Document Management System for Google Drive
+# 📁 Document Management & LLM Productivity Tools
 
-A complete, automated solution to organize all your business documents, processes, and knowledge in Google Drive.
+A complete toolkit for organizing your business documents and supercharging your LLM workflow.
 
-## 🎯 What This Does
+## 🎯 What This Includes
 
-This project automatically creates a professional folder structure in your Google Drive to organize:
+### 1. 📁 Google Drive Document Management System
+Automatically creates a professional folder structure in your Google Drive to organize:
 - AI Processes & Workflows
 - Business Processes & SOPs
 - Business Assets (Brand, Templates, Media)
@@ -12,19 +13,43 @@ This project automatically creates a professional folder structure in your Googl
 - Important Information & Strategic Planning
 - Archive for completed projects
 
+### 2. 🤖 LLM Prompt Manager Chrome Extension
+Never lose your favorite prompts again! Quick-access Chrome extension for:
+- Save your most-used LLM prompts
+- Right-click menu for instant access
+- Copy prompts with one click
+- Auto-insert into text fields
+- Works with Claude, ChatGPT, and any LLM tool
+
 ## 📦 What's Included
 
-| File | Description |
+| File/Folder | Description |
 |------|-------------|
 | `create_drive_structure.py` | Python script that creates the entire folder structure |
 | `requirements.txt` | Required Python packages |
 | `SETUP_INSTRUCTIONS.md` | Step-by-step guide (beginner-friendly) |
 | `FOLDER_STRUCTURE.md` | Visual map of the folder hierarchy |
 | `ORGANIZATIONAL_GUIDE.md` | Complete guide for using and maintaining the system |
+| `chrome-extension/` | **NEW!** Chrome extension for managing LLM prompts |
 
 ## ⚡ Quick Start
 
-### Option 1: Run the Automated Script (Recommended)
+### 🤖 Chrome Extension (Recommended to install first!)
+
+**Perfect if you use LLMs regularly and want instant access to your prompts**
+
+1. Open the `chrome-extension/` folder
+2. Follow the instructions in `chrome-extension/README.md`
+3. Takes 2 minutes to install
+4. Start saving your prompts immediately
+
+👉 **Full guide**: [chrome-extension/README.md](chrome-extension/README.md)
+
+### 📁 Google Drive Setup
+
+**Perfect if you need to organize your business documents**
+
+#### Option 1: Run the Automated Script (Recommended)
 
 1. **Install Python** (if you don't have it)
    - Download from https://python.org/downloads/
@@ -40,7 +65,7 @@ This project automatically creates a professional folder structure in your Googl
 
 4. **Done!** Your folder structure is created in Google Drive
 
-### Option 2: Manual Setup
+#### Option 2: Manual Setup
 
 1. Open `FOLDER_STRUCTURE.md`
 2. Manually create folders in Google Drive following the structure
@@ -169,13 +194,24 @@ Share these in order:
 
 ## 🚀 Roadmap
 
-**Potential Enhancements:**
+### Google Drive System
 - [ ] Integration with Slack notifications
 - [ ] Automated archival based on dates
 - [ ] Dashboard for document statistics
 - [ ] Templates library expansion
 - [ ] AI-powered document categorization
 - [ ] Automated duplicate detection
+
+### Chrome Extension
+- [x] Right-click context menu
+- [x] Add, edit, delete prompts
+- [x] Copy to clipboard
+- [x] Auto-insert into text fields
+- [ ] Organize prompts into folders
+- [ ] Search prompts
+- [ ] Import/export prompt collections
+- [ ] Keyboard shortcuts
+- [ ] Tag system
 
 ## 🤝 Contributing
 
