@@ -7,9 +7,13 @@ const emptyState = document.getElementById('emptyState');
 const exportBtn = document.getElementById('exportPrompts');
 const importBtn = document.getElementById('importPrompts');
 const fileInput = document.getElementById('fileInput');
+const autoBackupToggle = document.getElementById('autoBackupToggle');
 
-// Load prompts when popup opens
-document.addEventListener('DOMContentLoaded', loadPrompts);
+// Load prompts and settings when popup opens
+document.addEventListener('DOMContentLoaded', () => {
+  loadPrompts();
+  loadAutoBackupSetting();
+});
 
 // Add prompt button click
 addPromptBtn.addEventListener('click', addPrompt);
@@ -23,12 +27,32 @@ importBtn.addEventListener('click', () => fileInput.click());
 // File input change (when user selects a file)
 fileInput.addEventListener('change', importPrompts);
 
+// Auto-backup toggle change
+autoBackupToggle.addEventListener('change', async (e) => {
+  const isEnabled = e.target.checked;
+  await chrome.storage.sync.set({ autoBackupEnabled: isEnabled });
+
+  if (isEnabled) {
+    showToast('Auto-backup enabled! Backups will save to Downloads folder.');
+    // Do an immediate backup
+    await performAutoBackup();
+  } else {
+    showToast('Auto-backup disabled.');
+  }
+});
+
 // Allow Enter key in name input to add prompt
 promptNameInput.addEventListener('keypress', (e) => {
   if (e.key === 'Enter') {
     addPrompt();
   }
 });
+
+// Load auto-backup setting
+async function loadAutoBackupSetting() {
+  const data = await chrome.storage.sync.get(['autoBackupEnabled']);
+  autoBackupToggle.checked = data.autoBackupEnabled || false;
+}
 
 // Load and display prompts
 async function loadPrompts() {
@@ -123,6 +147,9 @@ async function addPrompt() {
 
   // Show success message
   showToast('Prompt added successfully!');
+
+  // Auto-backup if enabled
+  await performAutoBackup();
 }
 
 // Copy prompt to clipboard
@@ -157,6 +184,9 @@ async function editPrompt(index, prompt) {
   await chrome.storage.sync.set({ prompts });
   loadPrompts();
   showToast('Prompt updated successfully!');
+
+  // Auto-backup if enabled
+  await performAutoBackup();
 }
 
 // Delete prompt
@@ -173,6 +203,9 @@ async function deletePrompt(index) {
   await chrome.storage.sync.set({ prompts });
   loadPrompts();
   showToast('Prompt deleted');
+
+  // Auto-backup if enabled
+  await performAutoBackup();
 }
 
 // Show toast notification
@@ -289,4 +322,49 @@ async function importPrompts(event) {
   };
 
   reader.readAsText(file);
+}
+
+// Perform auto-backup to Downloads folder
+async function performAutoBackup() {
+  const settings = await chrome.storage.sync.get(['autoBackupEnabled']);
+
+  // Only backup if auto-backup is enabled
+  if (!settings.autoBackupEnabled) {
+    return;
+  }
+
+  const data = await chrome.storage.sync.get(['prompts']);
+  const prompts = data.prompts || [];
+
+  if (prompts.length === 0) {
+    return; // Nothing to backup
+  }
+
+  // Create export data with metadata
+  const exportData = {
+    exportDate: new Date().toISOString(),
+    version: '1.0',
+    promptCount: prompts.length,
+    prompts: prompts
+  };
+
+  // Convert to JSON string
+  const jsonString = JSON.stringify(exportData, null, 2);
+
+  // Create blob and download to Downloads folder
+  const blob = new Blob([jsonString], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+
+  try {
+    await chrome.downloads.download({
+      url: url,
+      filename: `LLM-Prompts-Backup/llm-prompts-${new Date().toISOString().replace(/[:.]/g, '-')}.json`,
+      saveAs: false, // Don't prompt, just save automatically
+      conflictAction: 'overwrite' // Overwrite if file exists
+    });
+  } catch (error) {
+    console.error('Auto-backup failed:', error);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
 }
