@@ -190,6 +190,41 @@ button {
   display: none;
 }
 
+/* Backup section */
+.backup-section {
+  background: white;
+  padding: 16px;
+  border-radius: 8px;
+  margin-top: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.backup-buttons {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.btn-secondary {
+  flex: 1;
+  background: #5f6368;
+  color: white;
+  padding: 10px;
+  font-size: 13px;
+}
+
+.btn-secondary:hover {
+  background: #4a4d51;
+}
+
+.backup-info {
+  font-size: 11px;
+  color: #666;
+  text-align: center;
+  margin: 0;
+  line-height: 1.4;
+}
+
 /* Toast notifications */
 .toast {
   position: fixed;

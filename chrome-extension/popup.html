@@ -23,6 +23,16 @@
         No prompts saved yet. Add one above!
       </div>
     </div>
+
+    <div class="backup-section">
+      <h2>Backup & Restore</h2>
+      <div class="backup-buttons">
+        <button id="exportPrompts" class="btn-secondary">📥 Export Prompts</button>
+        <button id="importPrompts" class="btn-secondary">📤 Import Prompts</button>
+      </div>
+      <input type="file" id="fileInput" accept=".json" style="display: none;">
+      <p class="backup-info">Export your prompts to backup or share. Import to restore from a backup.</p>
+    </div>
   </div>
 
   <script src="popup.js"></script>
