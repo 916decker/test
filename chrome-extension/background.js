@@ -121,22 +121,33 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 
 // Function to copy text to clipboard (runs in page context)
 function copyToClipboard(text) {
-  navigator.clipboard.writeText(text).catch(err => {
-    console.error('Clipboard write failed:', err);
-    // Fallback method using deprecated document.execCommand
-    const textarea = document.createElement('textarea');
-    textarea.value = text;
-    textarea.style.position = 'fixed';
-    textarea.style.opacity = '0';
-    document.body.appendChild(textarea);
-    textarea.select();
-    try {
-      document.execCommand('copy');
-    } catch (e) {
-      console.error('Fallback copy failed:', e);
+  // Use the more reliable fallback method that works everywhere
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.style.position = 'fixed';
+  textarea.style.top = '0';
+  textarea.style.left = '0';
+  textarea.style.width = '2em';
+  textarea.style.height = '2em';
+  textarea.style.padding = '0';
+  textarea.style.border = 'none';
+  textarea.style.outline = 'none';
+  textarea.style.boxShadow = 'none';
+  textarea.style.background = 'transparent';
+  document.body.appendChild(textarea);
+  textarea.focus();
+  textarea.select();
+
+  try {
+    const successful = document.execCommand('copy');
+    if (!successful) {
+      console.error('Copy command was unsuccessful');
     }
-    document.body.removeChild(textarea);
-  });
+  } catch (err) {
+    console.error('Unable to copy:', err);
+  }
+
+  document.body.removeChild(textarea);
 }
 
 // Function to insert text into active element
