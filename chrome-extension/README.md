@@ -31,8 +31,21 @@ Never lose your favorite LLM prompts again! This Chrome extension lets you save,
 
 ## 📥 Installation
 
-### Step 1: Get the Files
-The extension is in the `chrome-extension` folder of this repository.
+### Step 1: Get the Files on Your Computer
+
+**Option A: If you cloned this repository from GitHub**
+- The `chrome-extension` folder is already on your computer
+- It's inside wherever you cloned the repository
+- For example: `Documents/your-repo-name/chrome-extension`
+
+**Option B: If you haven't downloaded anything yet**
+1. Go to the GitHub repository page
+2. Click the green "Code" button
+3. Choose either:
+   - **"Download ZIP"** - Download and unzip to your Desktop or Documents folder
+   - **"Clone"** - Use git to clone the repository
+
+**📍 Bottom line:** You need to know the full path to the `chrome-extension` folder on your computer (e.g., `C:\Users\YourName\Documents\test\chrome-extension` on Windows or `/Users/YourName/Documents/test/chrome-extension` on Mac)
 
 ### Step 2: Load in Chrome
 
@@ -45,12 +58,22 @@ The extension is in the `chrome-extension` folder of this repository.
 
 3. **Load the Extension**
    - Click "Load unpacked"
-   - Navigate to the `chrome-extension` folder
-   - Click "Select Folder"
+   - **A file browser window will open**
+   - Navigate to where you downloaded/cloned the repository
+   - Open the `chrome-extension` folder (you should see files like `manifest.json`, `popup.html` inside)
+   - Click "Select Folder" (or "Open" on Mac)
 
 4. **Done!** 🎉
    - You should see "LLM Prompt Manager" in your extensions list
    - The extension icon will appear in your Chrome toolbar
+
+### 📍 Where is the folder?
+Common locations:
+- **Windows**: `C:\Users\YourName\Downloads\test-main\chrome-extension`
+- **Mac**: `/Users/YourName/Downloads/test-main/chrome-extension`
+- **Linux**: `/home/YourName/Downloads/test-main/chrome-extension`
+
+If you cloned with git, it's wherever you ran the git clone command.
 
 ### Optional: Pin the Extension
 - Click the puzzle piece icon (🧩) in your Chrome toolbar

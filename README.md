@@ -38,10 +38,21 @@ Never lose your favorite prompts again! Quick-access Chrome extension for:
 
 **Perfect if you use LLMs regularly and want instant access to your prompts**
 
-1. Open the `chrome-extension/` folder
-2. Follow the instructions in `chrome-extension/README.md`
-3. Takes 2 minutes to install
-4. Start saving your prompts immediately
+1. **First, get this repository on your computer**:
+   - Download as ZIP from GitHub (green "Code" button → "Download ZIP")
+   - Or clone with git: `git clone <repository-url>`
+   - Unzip to your Desktop or Documents folder if downloaded as ZIP
+
+2. **Find the `chrome-extension/` folder** on your computer
+   - Example: `Documents/test/chrome-extension/`
+
+3. **Install in Chrome**:
+   - Open Chrome and go to `chrome://extensions/`
+   - Enable "Developer Mode" (toggle top-right)
+   - Click "Load unpacked"
+   - Select the `chrome-extension` folder from your computer
+
+4. **Start using it!** Takes 2 minutes total
 
 👉 **Full guide**: [chrome-extension/README.md](chrome-extension/README.md)
 
