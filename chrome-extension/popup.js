@@ -352,24 +352,56 @@ async function copyPrompt(prompt) {
 
 // Edit prompt
 async function editPrompt(index, prompt) {
+  const data = await chrome.storage.sync.get(['prompts', 'folders']);
+  const prompts = data.prompts || [];
+  const folders = data.folders || [];
+
+  // Get current folder name
+  const currentFolder = folders.find(f => f.id === prompt.folderId);
+  const currentFolderName = currentFolder ? currentFolder.name : 'Uncategorized';
+
+  // Show folder options
+  let folderOptions = 'Available folders:\n';
+  folders.forEach((folder, idx) => {
+    folderOptions += `${idx + 1}. ${folder.name}\n`;
+  });
+
   const newName = window.prompt('Edit prompt name:', prompt.name);
   if (newName === null) return; // User cancelled
 
   const newText = window.prompt('Edit prompt text:', prompt.text);
   if (newText === null) return; // User cancelled
 
+  const folderChoice = window.prompt(
+    `${folderOptions}\nCurrent folder: ${currentFolderName}\n\nEnter folder number (or press Cancel to keep current):`,
+    ''
+  );
+
   if (!newName.trim() || !newText.trim()) {
     alert('Name and text cannot be empty');
     return;
   }
 
-  const data = await chrome.storage.sync.get(['prompts']);
-  const prompts = data.prompts || [];
+  let newFolderId = prompt.folderId; // Keep current by default
 
-  prompts[index] = { name: newName.trim(), text: newText.trim() };
+  // If user entered a folder number, update it
+  if (folderChoice !== null && folderChoice.trim() !== '') {
+    const choiceNum = parseInt(folderChoice);
+    if (choiceNum > 0 && choiceNum <= folders.length) {
+      newFolderId = folders[choiceNum - 1].id;
+    } else {
+      alert('Invalid folder number. Keeping current folder.');
+    }
+  }
+
+  prompts[index] = {
+    name: newName.trim(),
+    text: newText.trim(),
+    folderId: newFolderId
+  };
 
   await chrome.storage.sync.set({ prompts });
-  loadPrompts();
+  await loadPrompts();
   showToast('Prompt updated successfully!');
 
   // Auto-backup if enabled
