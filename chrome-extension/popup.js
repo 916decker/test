@@ -1985,3 +1985,511 @@ async function migrateFrom1To2() {
 
 // Run migrations on load
 document.addEventListener('DOMContentLoaded', runMigrations);
+
+// ============================================================================
+// V2.2 ADVANCED FEATURES
+// ============================================================================
+
+// ============================================================================
+// NESTED FOLDERS
+// ============================================================================
+
+// Update folder data structure to support parent folders
+async function initializeNestedFolders() {
+  const data = await chrome.storage.sync.get(['folders']);
+  let folders = data.folders || [];
+
+  // Add parentId to existing folders if missing
+  folders = folders.map(f => ({
+    ...f,
+    parentId: f.parentId || null,
+    expanded: f.expanded !== undefined ? f.expanded : true
+  }));
+
+  await chrome.storage.sync.set({ folders });
+}
+
+// Enhanced folder display with nesting
+async function loadFoldersNested() {
+  const data = await chrome.storage.sync.get(['folders']);
+  const folders = data.folders || [];
+
+  foldersList.innerHTML = '';
+
+  // Build folder tree
+  const rootFolders = folders.filter(f => !f.parentId);
+
+  function renderFolder(folder, level = 0) {
+    const folderTag = document.createElement('div');
+    folderTag.className = 'folder-tag' + (folder.isDefault ? ' default' : '');
+    if (level > 0) folderTag.classList.add('folder-indent-' + level);
+
+    const children = folders.filter(f => f.parentId === folder.id);
+    if (children.length > 0) {
+      folderTag.classList.add('has-children');
+
+      const expandBtn = document.createElement('button');
+      expandBtn.className = 'folder-expand-btn';
+      expandBtn.textContent = folder.expanded ? '▼' : '▶';
+      expandBtn.onclick = (e) => {
+        e.stopPropagation();
+        toggleFolderExpand(folder.id);
+      };
+      folderTag.appendChild(expandBtn);
+    }
+
+    const folderName = document.createElement('span');
+    folderName.textContent = folder.name;
+    if (children.length > 0) {
+      const indicator = document.createElement('span');
+      indicator.className = 'subfolder-indicator';
+      indicator.textContent = '(' + children.length + ')';
+      folderName.appendChild(indicator);
+    }
+    folderTag.appendChild(folderName);
+
+    if (!folder.isDefault) {
+      const deleteBtn = document.createElement('span');
+      deleteBtn.className = 'folder-delete';
+      deleteBtn.textContent = '×';
+      deleteBtn.onclick = () => deleteFolder(folder.id);
+      folderTag.appendChild(deleteBtn);
+    }
+
+    foldersList.appendChild(folderTag);
+
+    // Render children
+    if (folder.expanded && children.length > 0) {
+      children.forEach(child => renderFolder(child, level + 1));
+    }
+  }
+
+  rootFolders.forEach(folder => renderFolder(folder));
+
+  // Update selects
+  updateFolderSelects(folders);
+}
+
+async function toggleFolderExpand(folderId) {
+  const data = await chrome.storage.sync.get(['folders']);
+  const folders = data.folders || [];
+
+  const folder = folders.find(f => f.id === folderId);
+  if (folder) {
+    folder.expanded = !folder.expanded;
+    await chrome.storage.sync.set({ folders });
+    await loadFoldersNested();
+  }
+}
+
+// Override original loadFolders to use nested version
+const originalLoadFolders = loadFolders;
+loadFolders = async function() {
+  await loadFoldersNested();
+};
+
+document.addEventListener('DOMContentLoaded', initializeNestedFolders);
+
+// ============================================================================
+// PROMPT EFFECTIVENESS TRACKING
+// ============================================================================
+
+// Add rating to prompts
+async function ratePrompt(index, rating) {
+  const data = await chrome.storage.sync.get(['prompts']);
+  const prompts = data.prompts || [];
+
+  if (prompts[index]) {
+    if (!prompts[index].ratings) {
+      prompts[index].ratings = { up: 0, down: 0, userRating: null };
+    }
+
+    const currentRating = prompts[index].ratings.userRating;
+
+    // Remove previous rating
+    if (currentRating === 'up') prompts[index].ratings.up--;
+    if (currentRating === 'down') prompts[index].ratings.down--;
+
+    // Add new rating
+    if (rating === currentRating) {
+      // Toggle off
+      prompts[index].ratings.userRating = null;
+    } else {
+      if (rating === 'up') prompts[index].ratings.up++;
+      if (rating === 'down') prompts[index].ratings.down++;
+      prompts[index].ratings.userRating = rating;
+    }
+
+    await chrome.storage.sync.set({ prompts });
+    await loadPrompts();
+    await performAutoBackup();
+  }
+}
+
+// Override displayPrompts to add rating buttons
+const originalDisplayPromptsV2 = displayPrompts;
+displayPrompts = function(prompts, folders) {
+  originalDisplayPromptsV2(prompts, folders);
+
+  // Add rating buttons to each prompt
+  document.querySelectorAll('.prompt-card').forEach((card, index) => {
+    const prompt = prompts[index];
+    if (!prompt) return;
+
+    const header = card.querySelector('.prompt-header');
+    const actions = header.querySelector('.prompt-actions');
+
+    // Create rating section
+    const ratingDiv = document.createElement('div');
+    ratingDiv.className = 'prompt-rating';
+
+    const thumbsUp = document.createElement('button');
+    thumbsUp.className = 'btn-rating thumbs-up';
+    thumbsUp.textContent = '👍';
+    thumbsUp.title = 'Good prompt';
+    if (prompt.ratings && prompt.ratings.userRating === 'up') {
+      thumbsUp.classList.add('active');
+    }
+    thumbsUp.onclick = (e) => {
+      e.stopPropagation();
+      ratePrompt(index, 'up');
+    };
+
+    const thumbsDown = document.createElement('button');
+    thumbsDown.className = 'btn-rating thumbs-down';
+    thumbsDown.textContent = '👎';
+    thumbsDown.title = 'Needs improvement';
+    if (prompt.ratings && prompt.ratings.userRating === 'down') {
+      thumbsDown.classList.add('active');
+    }
+    thumbsDown.onclick = (e) => {
+      e.stopPropagation();
+      ratePrompt(index, 'down');
+    };
+
+    ratingDiv.appendChild(thumbsUp);
+    ratingDiv.appendChild(thumbsDown);
+
+    // Show score if rated
+    if (prompt.ratings && (prompt.ratings.up > 0 || prompt.ratings.down > 0)) {
+      const score = prompt.ratings.up - prompt.ratings.down;
+      const scoreSpan = document.createElement('span');
+      scoreSpan.className = 'rating-score ' + (score > 0 ? 'positive' : score < 0 ? 'negative' : '');
+      scoreSpan.textContent = score > 0 ? '+' + score : score;
+      ratingDiv.appendChild(scoreSpan);
+    }
+
+    // Insert before first action button
+    if (actions.firstChild) {
+      actions.insertBefore(ratingDiv, actions.firstChild);
+    } else {
+      actions.appendChild(ratingDiv);
+    }
+  });
+
+  // Add double-click handlers (from v2.1)
+  document.querySelectorAll('.prompt-card').forEach((card, index) => {
+    const nameElement = card.querySelector('h3');
+    if (nameElement && prompts[index]) {
+      nameElement.addEventListener('dblclick', (e) => {
+        e.stopPropagation();
+        enableQuickEdit(card, index, prompts[index]);
+      });
+    }
+  });
+};
+
+// Update analytics to show top rated
+const originalLoadAnalytics = loadAnalytics;
+loadAnalytics = async function() {
+  await originalLoadAnalytics();
+
+  const data = await chrome.storage.sync.get(['prompts']);
+  const prompts = data.prompts || [];
+
+  // Top rated prompts
+  const ratedPrompts = prompts
+    .filter(p => p.ratings && (p.ratings.up > 0 || p.ratings.down > 0))
+    .map(p => ({
+      ...p,
+      score: (p.ratings.up || 0) - (p.ratings.down || 0)
+    }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 10);
+
+  const topRatedList = document.getElementById('topRatedList');
+  topRatedList.innerHTML = '';
+
+  if (ratedPrompts.length === 0) {
+    topRatedList.innerHTML = '<p style="text-align: center; color: var(--text-tertiary);">No ratings yet</p>';
+  } else {
+    ratedPrompts.forEach(prompt => {
+      const item = document.createElement('div');
+      item.className = 'rating-item';
+      const scoreClass = prompt.score > 0 ? 'positive' : 'neutral';
+      item.innerHTML = '<span class="rating-item-name">' + prompt.name + '</span><span class="rating-item-score ' + scoreClass + '">' + (prompt.score > 0 ? '+' : '') + prompt.score + '</span>';
+      topRatedList.appendChild(item);
+    });
+  }
+};
+
+// ============================================================================
+// PROMPT CHAINS
+// ============================================================================
+
+let currentEditingChain = null;
+let chainPrompts = [];
+
+const chainsBtn = document.getElementById('chainsBtn');
+const chainsModal = document.getElementById('chainsModal');
+const closeChainsBtn = document.getElementById('closeChainsBtn');
+const chainsList = document.getElementById('chainsList');
+const createChainBtn = document.getElementById('createChainBtn');
+
+const chainEditorModal = document.getElementById('chainEditorModal');
+const chainName = document.getElementById('chainName');
+const chainDescription = document.getElementById('chainDescription');
+const chainPromptsList = document.getElementById('chainPromptsList');
+const addPromptToChainBtn = document.getElementById('addPromptToChainBtn');
+const saveChainBtn = document.getElementById('saveChainBtn');
+const cancelChainBtn = document.getElementById('cancelChainBtn');
+
+chainsBtn.addEventListener('click', () => {
+  loadChains();
+  openModal(chainsModal);
+});
+
+closeChainsBtn.addEventListener('click', () => {
+  closeModal(chainsModal);
+});
+
+createChainBtn.addEventListener('click', () => {
+  openChainEditor();
+});
+
+cancelChainBtn.addEventListener('click', () => {
+  closeModal(chainEditorModal);
+});
+
+saveChainBtn.addEventListener('click', saveChain);
+
+addPromptToChainBtn.addEventListener('click', addPromptToChain);
+
+async function loadChains() {
+  const data = await chrome.storage.sync.get(['chains']);
+  const chains = data.chains || [];
+
+  chainsList.innerHTML = '';
+
+  if (chains.length === 0) {
+    chainsList.innerHTML = '<p class="chain-empty-state">No chains created yet. Create your first workflow!</p>';
+    return;
+  }
+
+  chains.forEach((chain, index) => {
+    const card = document.createElement('div');
+    card.className = 'chain-card';
+
+    const promptNames = chain.prompts.map(p => p.name).join(' → ');
+
+    card.innerHTML = '<div class="chain-header"><span class="chain-name">' + chain.name + '</span><span class="chain-badge">' + chain.prompts.length + ' prompts</span></div><div class="chain-description">' + (chain.description || 'No description') + '</div><div class="chain-prompts-preview">Prompts: ' + promptNames + '</div><div class="chain-actions"><button class="btn-chain-action" data-action="run">▶ Run Chain</button><button class="btn-chain-action" data-action="edit">✏️ Edit</button><button class="btn-chain-action danger" data-action="delete">🗑️ Delete</button></div>';
+
+    // Add click handlers
+    card.querySelector('[data-action="run"]').onclick = (e) => {
+      e.stopPropagation();
+      runChain(chain);
+      closeModal(chainsModal);
+    };
+
+    card.querySelector('[data-action="edit"]').onclick = (e) => {
+      e.stopPropagation();
+      editChain(index, chain);
+    };
+
+    card.querySelector('[data-action="delete"]').onclick = (e) => {
+      e.stopPropagation();
+      deleteChain(index);
+    };
+
+    chainsList.appendChild(card);
+  });
+}
+
+function openChainEditor(chain = null, index = null) {
+  currentEditingChain = index;
+  chainPrompts = chain ? [...chain.prompts] : [];
+
+  document.getElementById('chainEditorTitle').textContent = chain ? 'Edit Prompt Chain' : 'Create Prompt Chain';
+  chainName.value = chain ? chain.name : '';
+  chainDescription.value = chain ? chain.description || '' : '';
+
+  renderChainPrompts();
+  openModal(chainEditorModal);
+  closeModal(chainsModal);
+}
+
+function editChain(index, chain) {
+  openChainEditor(chain, index);
+}
+
+async function deleteChain(index) {
+  if (!confirm('Delete this chain?')) return;
+
+  const data = await chrome.storage.sync.get(['chains']);
+  const chains = data.chains || [];
+  chains.splice(index, 1);
+
+  await chrome.storage.sync.set({ chains });
+  await loadChains();
+  showToast('Chain deleted');
+}
+
+async function addPromptToChain() {
+  const data = await chrome.storage.sync.get(['prompts']);
+  const prompts = data.prompts || [];
+
+  if (prompts.length === 0) {
+    alert('No prompts available. Create some prompts first!');
+    return;
+  }
+
+  // Show prompt selector
+  const promptNames = prompts.map((p, i) => (i + 1) + '. ' + p.name).join('\n');
+  const selection = prompt('Select prompt to add (enter number):\n\n' + promptNames);
+
+  if (selection) {
+    const index = parseInt(selection) - 1;
+    if (index >= 0 && index < prompts.length) {
+      const selectedPrompt = prompts[index];
+      chainPrompts.push({
+        id: selectedPrompt.name + '_' + Date.now(),
+        name: selectedPrompt.name,
+        text: selectedPrompt.text
+      });
+      renderChainPrompts();
+    } else {
+      alert('Invalid selection');
+    }
+  }
+}
+
+function renderChainPrompts() {
+  chainPromptsList.innerHTML = '';
+
+  if (chainPrompts.length === 0) {
+    chainPromptsList.innerHTML = '<div class="chain-empty-state">No prompts added yet. Click "Add Prompt" to build your chain.</div>';
+    return;
+  }
+
+  chainPrompts.forEach((prompt, index) => {
+    const item = document.createElement('div');
+    item.className = 'chain-prompt-item';
+
+    item.innerHTML = '<div class="chain-prompt-order">' + (index + 1) + '</div><div class="chain-prompt-name">' + prompt.name + '</div><div class="chain-prompt-actions"><button class="btn-chain-prompt" data-action="up" title="Move up">▲</button><button class="btn-chain-prompt" data-action="down" title="Move down">▼</button><button class="btn-chain-prompt" data-action="remove" title="Remove">🗑️</button></div>';
+
+    // Move up
+    item.querySelector('[data-action="up"]').onclick = () => {
+      if (index > 0) {
+        [chainPrompts[index - 1], chainPrompts[index]] = [chainPrompts[index], chainPrompts[index - 1]];
+        renderChainPrompts();
+      }
+    };
+
+    // Move down
+    item.querySelector('[data-action="down"]').onclick = () => {
+      if (index < chainPrompts.length - 1) {
+        [chainPrompts[index], chainPrompts[index + 1]] = [chainPrompts[index + 1], chainPrompts[index]];
+        renderChainPrompts();
+      }
+    };
+
+    // Remove
+    item.querySelector('[data-action="remove"]').onclick = () => {
+      chainPrompts.splice(index, 1);
+      renderChainPrompts();
+    };
+
+    chainPromptsList.appendChild(item);
+  });
+}
+
+async function saveChain() {
+  const name = chainName.value.trim();
+  const description = chainDescription.value.trim();
+
+  if (!name) {
+    alert('Please enter a chain name');
+    return;
+  }
+
+  if (chainPrompts.length === 0) {
+    alert('Please add at least one prompt to the chain');
+    return;
+  }
+
+  const chain = {
+    name,
+    description,
+    prompts: chainPrompts,
+    createdAt: Date.now()
+  };
+
+  const data = await chrome.storage.sync.get(['chains']);
+  const chains = data.chains || [];
+
+  if (currentEditingChain !== null) {
+    // Update existing
+    chains[currentEditingChain] = chain;
+  } else {
+    // Add new
+    chains.push(chain);
+  }
+
+  await chrome.storage.sync.set({ chains });
+  await loadChains();
+  closeModal(chainEditorModal);
+  openModal(chainsModal);
+  showToast(currentEditingChain !== null ? 'Chain updated!' : 'Chain created!');
+}
+
+async function runChain(chain) {
+  showToast('Running chain: ' + chain.name);
+
+  // Show execution indicator
+  const indicator = document.createElement('div');
+  indicator.className = 'chain-executing';
+  indicator.innerHTML = '<div class="chain-executing-title">Running: ' + chain.name + '</div><div class="chain-executing-progress">Step 0 of ' + chain.prompts.length + '</div><div class="chain-progress-bar"><div class="chain-progress-fill" style="width: 0%"></div></div>';
+  document.body.appendChild(indicator);
+
+  // Execute prompts in sequence
+  for (let i = 0; i < chain.prompts.length; i++) {
+    const prompt = chain.prompts[i];
+
+    // Update progress
+    const progress = ((i + 1) / chain.prompts.length) * 100;
+    indicator.querySelector('.chain-executing-progress').textContent = 'Step ' + (i + 1) + ' of ' + chain.prompts.length + ': ' + prompt.name;
+    indicator.querySelector('.chain-progress-fill').style.width = progress + '%';
+
+    // Copy prompt to clipboard
+    await navigator.clipboard.writeText(prompt.text);
+
+    // Wait for user to proceed
+    if (i < chain.prompts.length - 1) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+  }
+
+  // Remove indicator
+  setTimeout(() => {
+    document.body.removeChild(indicator);
+    showToast('Chain "' + chain.name + '" completed!');
+  }, 1500);
+}
+
+// Initialize chains storage
+document.addEventListener('DOMContentLoaded', async () => {
+  const data = await chrome.storage.sync.get(['chains']);
+  if (!data.chains) {
+    await chrome.storage.sync.set({ chains: [] });
+  }
+});

@@ -41,6 +41,10 @@
       </div>
 
       <div class="setting-item">
+        <button id="chainsBtn" class="btn-secondary">🔗 Manage Chains</button>
+      </div>
+
+      <div class="setting-item">
         <button id="closeSettingsBtn" class="btn-primary">Close</button>
       </div>
     </div>
@@ -273,10 +277,59 @@
             <h3>📊 Total Usage</h3>
             <div id="totalUsage"></div>
           </div>
+          <div class="analytics-stat">
+            <h3>👍 Top Rated Prompts</h3>
+            <div id="topRatedList"></div>
+          </div>
         </div>
       </div>
       <div class="modal-footer">
         <button id="closeAnalyticsBtn" class="btn-secondary">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Prompt Chains Modal -->
+  <div id="chainsModal" class="modal" style="display: none;">
+    <div class="modal-content modal-large">
+      <div class="modal-header">
+        <h2>🔗 Prompt Chains</h2>
+        <span class="modal-close">&times;</span>
+      </div>
+      <div class="modal-body">
+        <div class="chains-section">
+          <button id="createChainBtn" class="btn-primary" style="width: 100%; margin-bottom: 16px;">+ Create New Chain</button>
+          <div id="chainsList"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="closeChainsBtn" class="btn-secondary">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create/Edit Chain Modal -->
+  <div id="chainEditorModal" class="modal" style="display: none;">
+    <div class="modal-content modal-large">
+      <div class="modal-header">
+        <h2 id="chainEditorTitle">Create Prompt Chain</h2>
+        <span class="modal-close">&times;</span>
+      </div>
+      <div class="modal-body">
+        <label>Chain Name:</label>
+        <input type="text" id="chainName" class="modal-input" placeholder="e.g., Code Review Workflow">
+
+        <label>Description:</label>
+        <textarea id="chainDescription" class="modal-textarea" rows="2" placeholder="What does this chain do?"></textarea>
+
+        <label>Prompts in Chain:</label>
+        <div id="chainPromptsList" class="chain-prompts-list"></div>
+
+        <button id="addPromptToChainBtn" class="btn-secondary" style="width: 100%; margin-top: 10px;">+ Add Prompt to Chain</button>
+      </div>
+      <div class="modal-footer">
+        <button id="saveChainBtn" class="btn-primary">Save Chain</button>
+        <button id="cancelChainBtn" class="btn-secondary">Cancel</button>
       </div>
     </div>
   </div>
