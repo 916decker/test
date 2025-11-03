@@ -18,10 +18,23 @@ chrome.runtime.onInstalled.addListener(() => {
   createContextMenus();
 });
 
+// Debounce context menu updates to prevent duplicate ID errors
+let contextMenuUpdateTimer = null;
+function scheduleContextMenuUpdate() {
+  if (contextMenuUpdateTimer) {
+    clearTimeout(contextMenuUpdateTimer);
+  }
+  contextMenuUpdateTimer = setTimeout(() => {
+    createContextMenus();
+    contextMenuUpdateTimer = null;
+  }, 100); // 100ms debounce
+}
+
 // Listen for storage changes and update context menu
 chrome.storage.onChanged.addListener((changes, namespace) => {
-  if (namespace === 'sync' && (changes.prompts || changes.folders)) {
-    createContextMenus();
+  // Listen to BOTH sync and local storage (we use both now)
+  if ((namespace === 'sync' || namespace === 'local') && (changes.prompts || changes.folders)) {
+    scheduleContextMenuUpdate();
   }
 });
 
@@ -36,13 +49,39 @@ async function getStorage(keys) {
   return await chrome.storage.local.get(keys);
 }
 
+// Helper to create context menu items with error suppression
+function createMenuItem(options) {
+  try {
+    chrome.contextMenus.create(options, () => {
+      // Suppress "duplicate id" runtime errors
+      if (chrome.runtime.lastError) {
+        if (!chrome.runtime.lastError.message.includes('duplicate id')) {
+          console.error('Context menu error:', chrome.runtime.lastError);
+        }
+        // Silently ignore duplicate id errors
+      }
+    });
+  } catch (error) {
+    if (!error.message.includes('duplicate id')) {
+      console.error('Context menu creation error:', error);
+    }
+  }
+}
+
 // Create context menus based on saved prompts and folders
 async function createContextMenus() {
-  // Remove all existing context menus
-  await chrome.contextMenus.removeAll();
+  // Remove all existing context menus and wait for completion
+  try {
+    await chrome.contextMenus.removeAll();
+  } catch (error) {
+    console.error('Error removing context menus:', error);
+  }
+
+  // Small delay to ensure removeAll completes
+  await new Promise(resolve => setTimeout(resolve, 50));
 
   // Create parent menu
-  chrome.contextMenus.create({
+  createMenuItem({
     id: 'llm-prompt-manager',
     title: 'LLM Prompts',
     contexts: ['all']
@@ -55,7 +94,7 @@ async function createContextMenus() {
 
   if (prompts.length === 0) {
     // Show a message if no prompts are saved
-    chrome.contextMenus.create({
+    createMenuItem({
       id: 'no-prompts',
       parentId: 'llm-prompt-manager',
       title: 'No prompts saved yet',
@@ -69,7 +108,7 @@ async function createContextMenus() {
 
       if (folderPrompts.length > 0) {
         // Create folder submenu
-        chrome.contextMenus.create({
+        createMenuItem({
           id: `folder-${folder.id}`,
           parentId: 'llm-prompt-manager',
           title: `📁 ${folder.name}`,
@@ -81,7 +120,7 @@ async function createContextMenus() {
           // Find actual index in full prompts array
           const actualIndex = prompts.findIndex(p => p === prompt);
 
-          chrome.contextMenus.create({
+          createMenuItem({
             id: `prompt-${actualIndex}`,
             parentId: `folder-${folder.id}`,
             title: prompt.name,
@@ -93,7 +132,7 @@ async function createContextMenus() {
   }
 
   // Add "Manage Prompts" option
-  chrome.contextMenus.create({
+  createMenuItem({
     id: 'manage-prompts',
     parentId: 'llm-prompt-manager',
     title: '⚙️ Manage Prompts',

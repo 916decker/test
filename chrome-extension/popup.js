@@ -112,7 +112,7 @@ filterFolderSelect.addEventListener('change', () => loadPrompts());
 // Auto-backup
 autoBackupToggle.addEventListener('change', async (e) => {
   const isEnabled = e.target.checked;
-  await chrome.storage.sync.set({ autoBackupEnabled: isEnabled });
+  await smartStorage.set({ autoBackupEnabled: isEnabled });
   if (isEnabled) {
     showToast('Auto-backup enabled!');
     await performAutoBackup();
@@ -169,7 +169,7 @@ document.querySelectorAll('.modal').forEach(modal => {
 // ============================================================================
 
 async function initializeFolders() {
-  const data = await chrome.storage.sync.get(['folders']);
+  const data = await smartStorage.get(['folders']);
   let folders = data.folders || [];
 
   if (folders.length === 0) {
@@ -178,12 +178,12 @@ async function initializeFolders() {
       name: 'Uncategorized',
       isDefault: true
     }];
-    await chrome.storage.sync.set({ folders });
+    await smartStorage.set({ folders });
   }
 }
 
 async function loadFolders() {
-  const data = await chrome.storage.sync.get(['folders']);
+  const data = await smartStorage.get(['folders']);
   const folders = data.folders || [];
 
   // Update folders list display
@@ -256,7 +256,7 @@ async function addFolder() {
     return;
   }
 
-  const data = await chrome.storage.sync.get(['folders']);
+  const data = await smartStorage.get(['folders']);
   const folders = data.folders || [];
 
   if (folders.some(f => f.name.toLowerCase() === name.toLowerCase())) {
@@ -271,7 +271,7 @@ async function addFolder() {
   };
 
   folders.push(newFolder);
-  await chrome.storage.sync.set({ folders });
+  await smartStorage.set({ folders });
 
   newFolderInput.value = '';
   await loadFolders();
@@ -284,7 +284,7 @@ async function deleteFolder(folderId) {
     return;
   }
 
-  const data = await chrome.storage.sync.get(['folders', 'prompts']);
+  const data = await smartStorage.get(['folders', 'prompts']);
   let folders = data.folders || [];
   let prompts = data.prompts || [];
 
@@ -298,7 +298,7 @@ async function deleteFolder(folderId) {
     return p;
   });
 
-  await chrome.storage.sync.set({ folders, prompts });
+  await smartStorage.set({ folders, prompts });
   await loadFolders();
   await loadPrompts();
   showToast('Folder deleted');
@@ -310,7 +310,7 @@ async function deleteFolder(folderId) {
 // ============================================================================
 
 async function loadPrompts() {
-  const data = await chrome.storage.sync.get(['prompts', 'folders']);
+  const data = await smartStorage.get(['prompts', 'folders']);
   let prompts = data.prompts || [];
   const folders = data.folders || [];
 
@@ -493,7 +493,7 @@ async function addPrompt() {
     return;
   }
 
-  const data = await chrome.storage.sync.get(['prompts']);
+  const data = await smartStorage.get(['prompts']);
   const prompts = data.prompts || [];
 
   prompts.push({
@@ -507,7 +507,7 @@ async function addPrompt() {
     history: []
   });
 
-  await chrome.storage.sync.set({ prompts });
+  await smartStorage.set({ prompts });
 
   promptNameInput.value = '';
   promptTextInput.value = '';
@@ -518,7 +518,7 @@ async function addPrompt() {
 }
 
 async function usePrompt(index) {
-  const data = await chrome.storage.sync.get(['prompts']);
+  const data = await smartStorage.get(['prompts']);
   const prompts = data.prompts || [];
   const prompt = prompts[index];
 
@@ -550,13 +550,13 @@ async function copyPromptText(text, name, index) {
 }
 
 async function incrementUsageCount(index) {
-  const data = await chrome.storage.sync.get(['prompts']);
+  const data = await smartStorage.get(['prompts']);
   const prompts = data.prompts || [];
 
   if (prompts[index]) {
     prompts[index].usageCount = (prompts[index].usageCount || 0) + 1;
     prompts[index].lastUsed = Date.now();
-    await chrome.storage.sync.set({ prompts });
+    await smartStorage.set({ prompts });
 
     // Refresh displays
     await displayRecentlyUsed();
@@ -565,7 +565,7 @@ async function incrementUsageCount(index) {
 }
 
 async function duplicatePrompt(index) {
-  const data = await chrome.storage.sync.get(['prompts']);
+  const data = await smartStorage.get(['prompts']);
   const prompts = data.prompts || [];
   const original = prompts[index];
 
@@ -581,7 +581,7 @@ async function duplicatePrompt(index) {
   };
 
   prompts.push(duplicate);
-  await chrome.storage.sync.set({ prompts });
+  await smartStorage.set({ prompts });
 
   await loadPrompts();
   showToast('Prompt duplicated!');
@@ -593,7 +593,7 @@ async function deletePrompt(index) {
     return;
   }
 
-  const data = await chrome.storage.sync.get(['prompts', 'trash']);
+  const data = await smartStorage.get(['prompts', 'trash']);
   const prompts = data.prompts || [];
   const trash = data.trash || [];
 
@@ -605,7 +605,7 @@ async function deletePrompt(index) {
 
   prompts.splice(index, 1);
 
-  await chrome.storage.sync.set({ prompts, trash });
+  await smartStorage.set({ prompts, trash });
   await loadPrompts();
   await loadTrash();
   showToast('Prompt moved to trash');
@@ -669,7 +669,7 @@ async function bulkMovePrompts() {
     return;
   }
 
-  const data = await chrome.storage.sync.get(['prompts']);
+  const data = await smartStorage.get(['prompts']);
   const prompts = data.prompts || [];
 
   selectedPromptIndices.forEach(index => {
@@ -678,7 +678,7 @@ async function bulkMovePrompts() {
     }
   });
 
-  await chrome.storage.sync.set({ prompts });
+  await smartStorage.set({ prompts });
 
   showToast(`Moved ${selectedPromptIndices.size} prompts`);
   exitBulkMode();
@@ -696,7 +696,7 @@ async function bulkDeletePrompts() {
     return;
   }
 
-  const data = await chrome.storage.sync.get(['prompts', 'trash']);
+  const data = await smartStorage.get(['prompts', 'trash']);
   const prompts = data.prompts || [];
   const trash = data.trash || [];
 
@@ -711,7 +711,7 @@ async function bulkDeletePrompts() {
     }
   });
 
-  await chrome.storage.sync.set({ prompts, trash });
+  await smartStorage.set({ prompts, trash });
 
   showToast(`Moved ${sortedIndices.length} prompts to trash`);
   exitBulkMode();
@@ -725,7 +725,7 @@ async function bulkDeletePrompts() {
 // ============================================================================
 
 async function displayRecentlyUsed() {
-  const data = await chrome.storage.sync.get(['prompts']);
+  const data = await smartStorage.get(['prompts']);
   const prompts = data.prompts || [];
 
   const recentPrompts = prompts
@@ -776,12 +776,12 @@ async function displayRecentlyUsed() {
 // ============================================================================
 
 async function toggleFavorite(index) {
-  const data = await chrome.storage.sync.get(['prompts']);
+  const data = await smartStorage.get(['prompts']);
   const prompts = data.prompts || [];
 
   if (prompts[index]) {
     prompts[index].favorite = !prompts[index].favorite;
-    await chrome.storage.sync.set({ prompts });
+    await smartStorage.set({ prompts });
 
     await loadPrompts();
     await displayFavorites();
@@ -791,7 +791,7 @@ async function toggleFavorite(index) {
 }
 
 async function displayFavorites() {
-  const data = await chrome.storage.sync.get(['prompts']);
+  const data = await smartStorage.get(['prompts']);
   const prompts = data.prompts || [];
 
   const favorites = prompts.filter(p => p.favorite);
@@ -848,7 +848,7 @@ async function saveEdit() {
     return;
   }
 
-  const data = await chrome.storage.sync.get(['prompts']);
+  const data = await smartStorage.get(['prompts']);
   const prompts = data.prompts || [];
 
   if (prompts[currentEditingIndex]) {
@@ -870,7 +870,7 @@ async function saveEdit() {
     prompts[currentEditingIndex].text = newText;
     prompts[currentEditingIndex].folderId = newFolderId;
 
-    await chrome.storage.sync.set({ prompts });
+    await smartStorage.set({ prompts });
     await loadPrompts();
     showToast('Prompt updated successfully!');
     await performAutoBackup();
@@ -942,7 +942,7 @@ insertWithVariablesBtn.onclick = async function() {
     finalText = finalText.replace(new RegExp(`\\{\\{${varName}\\}\\}`, 'g'), value);
   });
 
-  const data = await chrome.storage.sync.get(['prompts']);
+  const data = await smartStorage.get(['prompts']);
   const prompts = data.prompts || [];
   const prompt = prompts[promptIndex];
 
@@ -958,7 +958,7 @@ insertWithVariablesBtn.onclick = async function() {
 // ============================================================================
 
 async function loadTrash() {
-  const data = await chrome.storage.sync.get(['trash']);
+  const data = await smartStorage.get(['trash']);
   const trash = data.trash || [];
 
   if (trash.length === 0) {
@@ -981,7 +981,7 @@ function toggleTrashView() {
 }
 
 async function displayTrash() {
-  const data = await chrome.storage.sync.get(['trash']);
+  const data = await smartStorage.get(['trash']);
   const trash = data.trash || [];
 
   trashList.innerHTML = '';
@@ -1027,7 +1027,7 @@ async function displayTrash() {
 }
 
 async function restoreFromTrash(index) {
-  const data = await chrome.storage.sync.get(['trash', 'prompts']);
+  const data = await smartStorage.get(['trash', 'prompts']);
   const trash = data.trash || [];
   const prompts = data.prompts || [];
 
@@ -1039,7 +1039,7 @@ async function restoreFromTrash(index) {
 
   trash.splice(index, 1);
 
-  await chrome.storage.sync.set({ trash, prompts });
+  await smartStorage.set({ trash, prompts });
   await displayTrash();
   await loadTrash();
   await loadPrompts();
@@ -1052,12 +1052,12 @@ async function permanentDelete(index) {
     return;
   }
 
-  const data = await chrome.storage.sync.get(['trash']);
+  const data = await smartStorage.get(['trash']);
   const trash = data.trash || [];
 
   trash.splice(index, 1);
 
-  await chrome.storage.sync.set({ trash });
+  await smartStorage.set({ trash });
   await displayTrash();
   await loadTrash();
   showToast('Prompt permanently deleted');
@@ -1098,14 +1098,14 @@ async function handleDrop(e) {
   const targetIndex = parseInt(target.dataset.index);
 
   // Reorder prompts
-  const data = await chrome.storage.sync.get(['prompts']);
+  const data = await smartStorage.get(['prompts']);
   const prompts = data.prompts || [];
 
   const movedPrompt = prompts[draggedIndex];
   prompts.splice(draggedIndex, 1);
   prompts.splice(targetIndex, 0, movedPrompt);
 
-  await chrome.storage.sync.set({ prompts });
+  await smartStorage.set({ prompts });
   await loadPrompts();
   showToast('Prompt reordered');
   await performAutoBackup();
@@ -1127,7 +1127,7 @@ function handleDragEnd(e) {
 // ============================================================================
 
 async function viewHistory(index) {
-  const data = await chrome.storage.sync.get(['prompts']);
+  const data = await smartStorage.get(['prompts']);
   const prompts = data.prompts || [];
   const prompt = prompts[index];
 
@@ -1153,7 +1153,7 @@ async function viewHistory(index) {
 // ============================================================================
 
 async function openShareModal() {
-  const data = await chrome.storage.sync.get(['prompts', 'folders']);
+  const data = await smartStorage.get(['prompts', 'folders']);
   const prompts = data.prompts || [];
   const folders = data.folders || [];
 
@@ -1200,7 +1200,7 @@ async function importFromCode() {
       return;
     }
 
-    const existingData = await chrome.storage.sync.get(['prompts', 'folders']);
+    const existingData = await smartStorage.get(['prompts', 'folders']);
     let existingFolders = existingData.folders || [];
     let defaultFolder = existingFolders.find(f => f.isDefault);
 
@@ -1212,7 +1212,7 @@ async function importFromCode() {
         isDefault: true
       };
       existingFolders.push(newDefault);
-      await chrome.storage.sync.set({ folders: existingFolders });
+      await smartStorage.set({ folders: existingFolders });
       defaultFolder = newDefault;
       showToast('Created default folder');
     }
@@ -1260,7 +1260,7 @@ async function importFromCode() {
 
       const mergedFolders = [...existingFolders, ...newFolders];
 
-      await chrome.storage.sync.set({ prompts: mergedPrompts, folders: mergedFolders });
+      await smartStorage.set({ prompts: mergedPrompts, folders: mergedFolders });
       showToast(`Added ${validPrompts.length} prompts!`);
     } else {
       const newFolders = [defaultFolder, ...importedFolders.filter(f => !f.isDefault).map(f => ({
@@ -1269,7 +1269,7 @@ async function importFromCode() {
         isDefault: false
       }))];
 
-      await chrome.storage.sync.set({ prompts: validPrompts, folders: newFolders });
+      await smartStorage.set({ prompts: validPrompts, folders: newFolders });
       showToast(`Imported ${validPrompts.length} prompts!`);
     }
 
@@ -1290,7 +1290,7 @@ async function importFromCode() {
 // ============================================================================
 
 async function exportPrompts() {
-  const data = await chrome.storage.sync.get(['prompts', 'folders']);
+  const data = await smartStorage.get(['prompts', 'folders']);
   const prompts = data.prompts || [];
   const folders = data.folders || [];
 
@@ -1464,18 +1464,18 @@ async function importPrompts(event) {
 // ============================================================================
 
 async function loadAutoBackupSetting() {
-  const data = await chrome.storage.sync.get(['autoBackupEnabled']);
+  const data = await smartStorage.get(['autoBackupEnabled']);
   autoBackupToggle.checked = data.autoBackupEnabled || false;
 }
 
 async function performAutoBackup() {
-  const settings = await chrome.storage.sync.get(['autoBackupEnabled']);
+  const settings = await smartStorage.get(['autoBackupEnabled']);
 
   if (!settings.autoBackupEnabled) {
     return;
   }
 
-  const data = await chrome.storage.sync.get(['prompts', 'folders']);
+  const data = await smartStorage.get(['prompts', 'folders']);
   const prompts = data.prompts || [];
   const folders = data.folders || [];
 
@@ -1531,7 +1531,7 @@ const smartStorage = {
   async get(keys) {
     // Try sync first, fallback to local
     try {
-      const syncData = await chrome.storage.sync.get(keys);
+      const syncData = await smartStorage.get(keys);
       // Check if we have data in sync
       if (syncData && Object.keys(syncData).length > 0) {
         return syncData;
@@ -1559,7 +1559,7 @@ const smartStorage = {
 
     // Try sync storage first
     try {
-      await chrome.storage.sync.set(items);
+      await smartStorage.set(items);
       return { usedLocal: false };
     } catch (error) {
       // Check if it's a quota error
@@ -1628,7 +1628,7 @@ closeSettingsBtn.addEventListener('click', () => {
 
 // Dark Mode Functions
 async function initializeDarkMode() {
-  const settings = await chrome.storage.sync.get(['darkMode', 'autoTheme']);
+  const settings = await smartStorage.get(['darkMode', 'autoTheme']);
 
   darkModeToggle.checked = settings.darkMode || false;
   autoThemeToggle.checked = settings.autoTheme || false;
@@ -1656,7 +1656,7 @@ function applyTheme(settings) {
 
 darkModeToggle.addEventListener('change', async (e) => {
   const darkMode = e.target.checked;
-  await chrome.storage.sync.set({ darkMode });
+  await smartStorage.set({ darkMode });
 
   if (!autoThemeToggle.checked) {
     document.body.classList.toggle('dark-mode', darkMode);
@@ -1667,7 +1667,7 @@ darkModeToggle.addEventListener('change', async (e) => {
 
 autoThemeToggle.addEventListener('change', async (e) => {
   const autoTheme = e.target.checked;
-  await chrome.storage.sync.set({ autoTheme });
+  await smartStorage.set({ autoTheme });
 
   if (autoTheme) {
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -1821,7 +1821,7 @@ function loadTemplates() {
 }
 
 async function importTemplate(template) {
-  const data = await chrome.storage.sync.get(['prompts', 'folders']);
+  const data = await smartStorage.get(['prompts', 'folders']);
   const prompts = data.prompts || [];
   const folders = data.folders || [];
   const defaultFolder = folders.find(f => f.isDefault);
@@ -1837,7 +1837,7 @@ async function importTemplate(template) {
     history: []
   });
 
-  await chrome.storage.sync.set({ prompts });
+  await smartStorage.set({ prompts });
   await loadPrompts();
   closeModal(templatesModal);
   showToast(`Template "${template.name}" imported!`);
@@ -1859,7 +1859,7 @@ closeAnalyticsBtn.addEventListener('click', () => {
 });
 
 async function loadAnalytics() {
-  const data = await chrome.storage.sync.get(['prompts']);
+  const data = await smartStorage.get(['prompts']);
   const prompts = data.prompts || [];
 
   // Top prompts
@@ -1917,11 +1917,11 @@ function enableQuickEdit(promptCard, index, prompt) {
   const saveEdit = async () => {
     const newName = input.value.trim();
     if (newName && newName !== originalName) {
-      const data = await chrome.storage.sync.get(['prompts']);
+      const data = await smartStorage.get(['prompts']);
       const prompts = data.prompts || [];
       if (prompts[index]) {
         prompts[index].name = newName;
-        await chrome.storage.sync.set({ prompts });
+        await smartStorage.set({ prompts });
         await loadPrompts();
         showToast('Prompt renamed!');
         await performAutoBackup();
@@ -2010,7 +2010,7 @@ async function runMigrations() {
 
 async function migrateFrom1To2() {
   // Add new fields to existing prompts
-  const data = await chrome.storage.sync.get(['prompts']);
+  const data = await smartStorage.get(['prompts']);
   const prompts = data.prompts || [];
 
   const migratedPrompts = prompts.map(p => ({
@@ -2022,7 +2022,7 @@ async function migrateFrom1To2() {
     history: p.history || []
   }));
 
-  await chrome.storage.sync.set({ prompts: migratedPrompts });
+  await smartStorage.set({ prompts: migratedPrompts });
   console.log('Migration 1.0 -> 2.0 complete');
 }
 
@@ -2039,7 +2039,7 @@ document.addEventListener('DOMContentLoaded', runMigrations);
 
 // Update folder data structure to support parent folders
 async function initializeNestedFolders() {
-  const data = await chrome.storage.sync.get(['folders']);
+  const data = await smartStorage.get(['folders']);
   let folders = data.folders || [];
 
   // Add parentId to existing folders if missing
@@ -2049,12 +2049,12 @@ async function initializeNestedFolders() {
     expanded: f.expanded !== undefined ? f.expanded : true
   }));
 
-  await chrome.storage.sync.set({ folders });
+  await smartStorage.set({ folders });
 }
 
 // Enhanced folder display with nesting
 async function loadFoldersNested() {
-  const data = await chrome.storage.sync.get(['folders']);
+  const data = await smartStorage.get(['folders']);
   const folders = data.folders || [];
 
   foldersList.innerHTML = '';
@@ -2114,13 +2114,13 @@ async function loadFoldersNested() {
 }
 
 async function toggleFolderExpand(folderId) {
-  const data = await chrome.storage.sync.get(['folders']);
+  const data = await smartStorage.get(['folders']);
   const folders = data.folders || [];
 
   const folder = folders.find(f => f.id === folderId);
   if (folder) {
     folder.expanded = !folder.expanded;
-    await chrome.storage.sync.set({ folders });
+    await smartStorage.set({ folders });
     await loadFoldersNested();
   }
 }
@@ -2139,7 +2139,7 @@ document.addEventListener('DOMContentLoaded', initializeNestedFolders);
 
 // Add rating to prompts
 async function ratePrompt(index, rating) {
-  const data = await chrome.storage.sync.get(['prompts']);
+  const data = await smartStorage.get(['prompts']);
   const prompts = data.prompts || [];
 
   if (prompts[index]) {
@@ -2163,7 +2163,7 @@ async function ratePrompt(index, rating) {
       prompts[index].ratings.userRating = rating;
     }
 
-    await chrome.storage.sync.set({ prompts });
+    await smartStorage.set({ prompts });
     await loadPrompts();
     await performAutoBackup();
   }
@@ -2247,7 +2247,7 @@ const originalLoadAnalytics = loadAnalytics;
 loadAnalytics = async function() {
   await originalLoadAnalytics();
 
-  const data = await chrome.storage.sync.get(['prompts']);
+  const data = await smartStorage.get(['prompts']);
   const prompts = data.prompts || [];
 
   // Top rated prompts
@@ -2319,7 +2319,7 @@ saveChainBtn.addEventListener('click', saveChain);
 addPromptToChainBtn.addEventListener('click', addPromptToChain);
 
 async function loadChains() {
-  const data = await chrome.storage.sync.get(['chains']);
+  const data = await smartStorage.get(['chains']);
   const chains = data.chains || [];
 
   chainsList.innerHTML = '';
@@ -2378,17 +2378,17 @@ function editChain(index, chain) {
 async function deleteChain(index) {
   if (!confirm('Delete this chain?')) return;
 
-  const data = await chrome.storage.sync.get(['chains']);
+  const data = await smartStorage.get(['chains']);
   const chains = data.chains || [];
   chains.splice(index, 1);
 
-  await chrome.storage.sync.set({ chains });
+  await smartStorage.set({ chains });
   await loadChains();
   showToast('Chain deleted');
 }
 
 async function addPromptToChain() {
-  const data = await chrome.storage.sync.get(['prompts']);
+  const data = await smartStorage.get(['prompts']);
   const prompts = data.prompts || [];
 
   if (prompts.length === 0) {
@@ -2477,7 +2477,7 @@ async function saveChain() {
     createdAt: Date.now()
   };
 
-  const data = await chrome.storage.sync.get(['chains']);
+  const data = await smartStorage.get(['chains']);
   const chains = data.chains || [];
 
   if (currentEditingChain !== null) {
@@ -2488,7 +2488,7 @@ async function saveChain() {
     chains.push(chain);
   }
 
-  await chrome.storage.sync.set({ chains });
+  await smartStorage.set({ chains });
   await loadChains();
   closeModal(chainEditorModal);
   openModal(chainsModal);
@@ -2531,8 +2531,8 @@ async function runChain(chain) {
 
 // Initialize chains storage
 document.addEventListener('DOMContentLoaded', async () => {
-  const data = await chrome.storage.sync.get(['chains']);
+  const data = await smartStorage.get(['chains']);
   if (!data.chains) {
-    await chrome.storage.sync.set({ chains: [] });
+    await smartStorage.set({ chains: [] });
   }
 });
