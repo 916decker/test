@@ -1408,6 +1408,20 @@ async function importPrompts(event) {
         }));
       }
 
+      // Normalize prompts - ensure all required fields are present
+      const baseTimestamp = Date.now();
+      validPrompts = validPrompts.map((p, index) => ({
+        id: p.id || `prompt_${baseTimestamp}_${index}_${Math.random().toString(36).substr(2, 9)}`,
+        name: p.name,
+        text: p.text,
+        favorite: p.favorite !== undefined ? p.favorite : false,
+        usageCount: p.usageCount !== undefined ? p.usageCount : 0,
+        lastUsed: p.lastUsed !== undefined ? p.lastUsed : null,
+        createdAt: p.createdAt || baseTimestamp + index,
+        history: Array.isArray(p.history) ? p.history : [],
+        folderId: p.folderId // Already mapped above
+      }));
+
       if (validPrompts.length === 0) {
         showToast('No valid prompts found!', 'error');
         return;
