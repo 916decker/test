@@ -1327,14 +1327,42 @@ async function importPrompts(event) {
   const file = event.target.files[0];
   if (!file) return;
 
+  // Validate file type
+  if (!file.name.endsWith('.json')) {
+    showToast('Please select a JSON file', 'error');
+    fileInput.value = '';
+    return;
+  }
+
+  // Validate file size (max 5MB)
+  if (file.size > 5 * 1024 * 1024) {
+    showToast('File too large (max 5MB)', 'error');
+    fileInput.value = '';
+    return;
+  }
+
   const reader = new FileReader();
 
   reader.onload = async (e) => {
     try {
       const importData = JSON.parse(e.target.result);
 
+      // Validate schema
       if (!importData.prompts || !Array.isArray(importData.prompts)) {
         showToast('Invalid file format!', 'error');
+        fileInput.value = '';
+        return;
+      }
+
+      // Validate each prompt has required fields
+      const validPromptCount = importData.prompts.filter(p =>
+        p.name && typeof p.name === 'string' &&
+        p.text && typeof p.text === 'string'
+      ).length;
+
+      if (validPromptCount === 0) {
+        showToast('No valid prompts found in file!', 'error');
+        fileInput.value = '';
         return;
       }
 
@@ -1873,70 +1901,6 @@ displayPrompts = function(prompts, folders) {
     }
   });
 };
-
-// Import/Export Validation
-const originalImportPrompts = importPrompts;
-importPrompts = async function(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-
-  // Validate file type
-  if (!file.name.endsWith('.json')) {
-    showToast('Please select a JSON file', 'error');
-    fileInput.value = '';
-    return;
-  }
-
-  // Validate file size (max 5MB)
-  if (file.size > 5 * 1024 * 1024) {
-    showToast('File too large (max 5MB)', 'error');
-    fileInput.value = '';
-    return;
-  }
-
-  const reader = new FileReader();
-
-  reader.onload = async (e) => {
-    try {
-      const importData = JSON.parse(e.target.result);
-
-      // Validate schema
-      if (!validateImportSchema(importData)) {
-        showToast('Invalid file format!', 'error');
-        fileInput.value = '';
-        return;
-      }
-
-      // Auto-backup before import
-      await exportPrompts();
-      showToast('Backup created before import');
-
-      // Continue with original import logic
-      await originalImportPrompts.call(this, event);
-
-    } catch (error) {
-      logError('Import failed', error);
-      showToast('Failed to import. Invalid file.', 'error');
-      fileInput.value = '';
-    }
-  };
-
-  reader.readAsText(file);
-};
-
-function validateImportSchema(data) {
-  // Check version
-  if (!data.version || !data.exportDate) return false;
-
-  // Check prompts array
-  if (!Array.isArray(data.prompts)) return false;
-
-  // Validate each prompt has required fields
-  return data.prompts.every(p =>
-    p.name && typeof p.name === 'string' &&
-    p.text && typeof p.text === 'string'
-  );
-}
 
 // Error Reporting System
 async function logError(context, error) {
