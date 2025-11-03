@@ -68,6 +68,70 @@ function createMenuItem(options) {
   }
 }
 
+// ============================================================
+// Helper function to save a prompt (reusable)
+// Feature #6: Saves source URL with prompt
+// ============================================================
+async function savePromptToStorage(selectedText, sourceUrl = null, folderId = null) {
+  if (!selectedText || !selectedText.trim()) {
+    return false;
+  }
+
+  // Get folders to find the default folder
+  const data = await getStorage(['prompts', 'folders']);
+  let folders = data.folders || [];
+  let prompts = data.prompts || [];
+
+  // Ensure default folder exists
+  let defaultFolder = folders.find(f => f.isDefault);
+  if (!defaultFolder) {
+    defaultFolder = {
+      id: 'folder_default_' + Date.now(),
+      name: 'Default',
+      isDefault: true
+    };
+    folders.push(defaultFolder);
+  }
+
+  // Use provided folderId or default
+  const targetFolderId = folderId || defaultFolder.id;
+
+  // Create the new prompt with normalization
+  const timestamp = Date.now();
+  const newPrompt = {
+    id: `prompt_${timestamp}_${Math.random().toString(36).substr(2, 9)}`,
+    name: selectedText.substring(0, 50) + (selectedText.length > 50 ? '...' : ''),
+    text: selectedText,
+    favorite: false,
+    usageCount: 0,
+    lastUsed: null,
+    createdAt: timestamp,
+    history: [],
+    folderId: targetFolderId,
+    sourceUrl: sourceUrl || null  // Feature #6: Save source URL
+  };
+
+  // Add to prompts array
+  prompts.push(newPrompt);
+
+  // Save to storage (will use smartStorage logic)
+  const dataSize = JSON.stringify({ prompts, folders }).length;
+  const SYNC_QUOTA_BYTES_PER_ITEM = 8192;
+
+  if (dataSize > SYNC_QUOTA_BYTES_PER_ITEM * 0.8) {
+    await chrome.storage.local.set({ prompts, folders });
+  } else {
+    try {
+      await chrome.storage.sync.set({ prompts, folders });
+    } catch (error) {
+      // Fallback to local if sync fails
+      await chrome.storage.local.set({ prompts, folders });
+    }
+  }
+
+  return newPrompt;
+}
+
 // Create context menus based on saved prompts and folders
 async function createContextMenus() {
   // Remove all existing context menus and wait for completion
@@ -139,10 +203,29 @@ async function createContextMenus() {
     contexts: ['all']
   });
 
-  // Add "Save to LLM Prompts" option (only appears when text is selected)
+  // Feature #5: Character count badge in menu title
+  // Only show this menu when text is selected
   createMenuItem({
-    id: 'save-selection-to-prompts',
+    id: 'save-selection-parent',
     title: '💾 Save to LLM Prompt Manager',
+    contexts: ['selection']
+  });
+
+  // Feature #2: Folder submenu - Quick save to specific folders
+  folders.forEach(folder => {
+    createMenuItem({
+      id: `save-to-folder-${folder.id}`,
+      parentId: 'save-selection-parent',
+      title: `📁 ${folder.name}`,
+      contexts: ['selection']
+    });
+  });
+
+  // Feature #3: Edit before saving option
+  createMenuItem({
+    id: 'save-selection-edit',
+    parentId: 'save-selection-parent',
+    title: '✏️ Edit before saving...',
     contexts: ['selection']
   });
 }
@@ -155,72 +238,63 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     return;
   }
 
-  // Handle saving selected text to prompts
-  if (info.menuItemId === 'save-selection-to-prompts') {
+  // Feature #3: Handle edit before saving
+  if (info.menuItemId === 'save-selection-edit') {
     const selectedText = info.selectionText;
 
     if (selectedText && selectedText.trim()) {
-      // Get folders to find the default folder
-      const data = await getStorage(['prompts', 'folders']);
-      let folders = data.folders || [];
-      let prompts = data.prompts || [];
+      // Open extension popup with pre-filled text
+      // Store selected text temporarily
+      await chrome.storage.local.set({
+        tempPromptText: selectedText,
+        tempSourceUrl: tab.url
+      });
 
-      // Ensure default folder exists
-      let defaultFolder = folders.find(f => f.isDefault);
-      if (!defaultFolder) {
-        defaultFolder = {
-          id: 'folder_default_' + Date.now(),
-          name: 'Default',
-          isDefault: true
-        };
-        folders.push(defaultFolder);
-      }
+      chrome.action.openPopup();
 
-      // Create the new prompt with normalization
-      const timestamp = Date.now();
-      const newPrompt = {
-        id: `prompt_${timestamp}_${Math.random().toString(36).substr(2, 9)}`,
-        name: selectedText.substring(0, 50) + (selectedText.length > 50 ? '...' : ''), // First 50 chars as name
-        text: selectedText,
-        favorite: false,
-        usageCount: 0,
-        lastUsed: null,
-        createdAt: timestamp,
-        history: [],
-        folderId: defaultFolder.id
-      };
-
-      // Add to prompts array
-      prompts.push(newPrompt);
-
-      // Save to storage (will use smartStorage logic)
-      const dataSize = JSON.stringify({ prompts, folders }).length;
-      const SYNC_QUOTA_BYTES_PER_ITEM = 8192;
-
-      if (dataSize > SYNC_QUOTA_BYTES_PER_ITEM * 0.8) {
-        await chrome.storage.local.set({ prompts, folders });
-      } else {
-        try {
-          await chrome.storage.sync.set({ prompts, folders });
-        } catch (error) {
-          // Fallback to local if sync fails
-          await chrome.storage.local.set({ prompts, folders });
-        }
-      }
-
-      // Show notification to user
+      // Show notification
       chrome.notifications.create({
         type: 'basic',
         iconUrl: 'icon48.png',
-        title: 'Prompt Saved!',
-        message: `"${newPrompt.name}" saved to LLM Prompt Manager`,
-        priority: 1
+        title: 'Edit in Popup',
+        message: 'Opening extension to edit prompt details',
+        priority: 0
       });
     }
     return;
   }
 
-  // Handle prompt selection
+  // Feature #2: Handle save to specific folder
+  if (info.menuItemId.startsWith('save-to-folder-')) {
+    const folderId = info.menuItemId.replace('save-to-folder-', '');
+    const selectedText = info.selectionText;
+
+    if (selectedText && selectedText.trim()) {
+      // Feature #5: Get character count
+      const charCount = selectedText.length;
+
+      // Save with specific folder ID and source URL
+      const newPrompt = await savePromptToStorage(selectedText, tab.url, folderId);
+
+      if (newPrompt) {
+        // Get folder name for notification
+        const data = await getStorage(['folders']);
+        const folders = data.folders || [];
+        const folder = folders.find(f => f.id === folderId);
+
+        chrome.notifications.create({
+          type: 'basic',
+          iconUrl: 'icon48.png',
+          title: '✅ Prompt Saved!',
+          message: `"${newPrompt.name}" (${charCount} chars)\nSaved to ${folder ? folder.name : 'Default'}`,
+          priority: 1
+        });
+      }
+    }
+    return;
+  }
+
+  // Handle prompt selection (insert into page)
   if (info.menuItemId.startsWith('prompt-')) {
     const index = parseInt(info.menuItemId.replace('prompt-', ''));
     const data = await getStorage(['prompts']);
@@ -240,6 +314,56 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
       } catch (error) {
         console.error('Failed to insert prompt:', error);
       }
+    }
+  }
+});
+
+// Feature #1: Keyboard Shortcut Handler (Alt+Shift+S)
+chrome.commands.onCommand.addListener(async (command) => {
+  if (command === 'save-selection') {
+    // Get the active tab
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+    if (!tab) return;
+
+    try {
+      // Execute script to get selected text
+      const results = await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: () => window.getSelection().toString()
+      });
+
+      const selectedText = results[0]?.result;
+
+      if (selectedText && selectedText.trim()) {
+        // Feature #5: Get character count
+        const charCount = selectedText.length;
+
+        // Save the prompt with source URL
+        const newPrompt = await savePromptToStorage(selectedText, tab.url);
+
+        if (newPrompt) {
+          // Show notification with keyboard indicator
+          chrome.notifications.create({
+            type: 'basic',
+            iconUrl: 'icon48.png',
+            title: '⚡ Prompt Saved! (Alt+Shift+S)',
+            message: `"${newPrompt.name}" (${charCount} chars)\nFrom: ${tab.title}`,
+            priority: 1
+          });
+        }
+      } else {
+        // No text selected - show warning notification
+        chrome.notifications.create({
+          type: 'basic',
+          iconUrl: 'icon48.png',
+          title: 'No Text Selected',
+          message: 'Please select some text before using Alt+Shift+S',
+          priority: 0
+        });
+      }
+    } catch (error) {
+      console.error('Failed to save selection via keyboard:', error);
     }
   }
 });
@@ -295,7 +419,7 @@ function insertOrPasteText(text) {
       textarea.value = text;
       textarea.style.position = 'fixed';
       textarea.style.top = '0';
-      textarea.style.left = '0';
+      textarea.style.top = '0';
       textarea.style.opacity = '0';
       document.body.appendChild(textarea);
       textarea.focus();
