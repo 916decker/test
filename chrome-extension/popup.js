@@ -1201,8 +1201,36 @@ async function importFromCode() {
     }
 
     const existingData = await chrome.storage.sync.get(['prompts', 'folders']);
-    const existingFolders = existingData.folders || [];
-    const defaultFolder = existingFolders.find(f => f.isDefault);
+    let existingFolders = existingData.folders || [];
+let defaultFolder = existingFolders.find(f => f.isDefault);
+
+// ============================================================
+// FINAL SAFETY PATCH: ensure a valid defaultFolder reference
+// ============================================================
+if (!defaultFolder) {
+  const newDefault = {
+    id: 'folder_default_bootstrap',
+    name: 'Default',
+    isDefault: true
+  };
+
+  existingFolders.push(newDefault);
+  await chrome.storage.sync.set({ folders: existingFolders });
+
+  console.warn('⚠️ Auto-created missing default folder (folder_default_bootstrap)');
+  showToast('Created a Default folder automatically to complete import.');
+
+  // 🔁 Re-fetch to ensure defaultFolder is now in memory
+  const refreshed = await chrome.storage.sync.get('folders');
+  existingFolders = refreshed.folders || [newDefault];
+  defaultFolder = existingFolders.find(f => f.isDefault) || newDefault;
+}
+
+// ✅ Guarantee fallback if something went wrong
+if (!defaultFolder || !defaultFolder.id) {
+  defaultFolder = { id: 'folder_default_bootstrap', name: 'Default', isDefault: true };
+}
+
 
     let importedFolders = importData.folders || [];
     let folderIdMap = {};
