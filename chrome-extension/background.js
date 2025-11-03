@@ -138,6 +138,13 @@ async function createContextMenus() {
     title: '⚙️ Manage Prompts',
     contexts: ['all']
   });
+
+  // Add "Save to LLM Prompts" option (only appears when text is selected)
+  createMenuItem({
+    id: 'save-selection-to-prompts',
+    title: '💾 Save to LLM Prompt Manager',
+    contexts: ['selection']
+  });
 }
 
 // Handle context menu clicks
@@ -145,6 +152,71 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId === 'manage-prompts') {
     // Open the extension popup
     chrome.action.openPopup();
+    return;
+  }
+
+  // Handle saving selected text to prompts
+  if (info.menuItemId === 'save-selection-to-prompts') {
+    const selectedText = info.selectionText;
+
+    if (selectedText && selectedText.trim()) {
+      // Get folders to find the default folder
+      const data = await getStorage(['prompts', 'folders']);
+      let folders = data.folders || [];
+      let prompts = data.prompts || [];
+
+      // Ensure default folder exists
+      let defaultFolder = folders.find(f => f.isDefault);
+      if (!defaultFolder) {
+        defaultFolder = {
+          id: 'folder_default_' + Date.now(),
+          name: 'Default',
+          isDefault: true
+        };
+        folders.push(defaultFolder);
+      }
+
+      // Create the new prompt with normalization
+      const timestamp = Date.now();
+      const newPrompt = {
+        id: `prompt_${timestamp}_${Math.random().toString(36).substr(2, 9)}`,
+        name: selectedText.substring(0, 50) + (selectedText.length > 50 ? '...' : ''), // First 50 chars as name
+        text: selectedText,
+        favorite: false,
+        usageCount: 0,
+        lastUsed: null,
+        createdAt: timestamp,
+        history: [],
+        folderId: defaultFolder.id
+      };
+
+      // Add to prompts array
+      prompts.push(newPrompt);
+
+      // Save to storage (will use smartStorage logic)
+      const dataSize = JSON.stringify({ prompts, folders }).length;
+      const SYNC_QUOTA_BYTES_PER_ITEM = 8192;
+
+      if (dataSize > SYNC_QUOTA_BYTES_PER_ITEM * 0.8) {
+        await chrome.storage.local.set({ prompts, folders });
+      } else {
+        try {
+          await chrome.storage.sync.set({ prompts, folders });
+        } catch (error) {
+          // Fallback to local if sync fails
+          await chrome.storage.local.set({ prompts, folders });
+        }
+      }
+
+      // Show notification to user
+      chrome.notifications.create({
+        type: 'basic',
+        iconUrl: 'icon48.png',
+        title: 'Prompt Saved!',
+        message: `"${newPrompt.name}" saved to LLM Prompt Manager`,
+        priority: 1
+      });
+    }
     return;
   }
 
