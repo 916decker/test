@@ -9,6 +9,36 @@
   <div class="container">
     <h1>🤖 LLM Prompt Manager</h1>
 
+    <!-- Search Bar -->
+    <div class="search-section">
+      <input type="text" id="searchInput" placeholder="🔍 Search prompts..." />
+      <button id="bulkModeToggle" class="btn-bulk-mode">Select Multiple</button>
+    </div>
+
+    <!-- Bulk Actions Bar (hidden by default) -->
+    <div id="bulkActionsBar" class="bulk-actions-bar" style="display: none;">
+      <span id="bulkSelectedCount">0 selected</span>
+      <select id="bulkMoveFolder" class="bulk-folder-select">
+        <option value="">Move to folder...</option>
+      </select>
+      <button id="bulkMoveBtn" class="btn-bulk-action">Move Selected</button>
+      <button id="bulkDeleteBtn" class="btn-bulk-action btn-danger">Delete Selected</button>
+      <button id="bulkCancelBtn" class="btn-bulk-action">Cancel</button>
+    </div>
+
+    <!-- Recently Used Section -->
+    <div class="recent-section" id="recentSection" style="display: none;">
+      <h2>⚡ Recently Used</h2>
+      <div id="recentPromptsList" class="recent-prompts-list"></div>
+    </div>
+
+    <!-- Favorites Section -->
+    <div class="favorites-section" id="favoritesSection" style="display: none;">
+      <h2>⭐ Favorites</h2>
+      <div id="favoritePromptsList" class="favorites-prompts-list"></div>
+    </div>
+
+    <!-- Folders Section -->
     <div class="folder-section">
       <h2>📁 Folders</h2>
       <div class="folder-management">
@@ -18,16 +48,18 @@
       <div id="foldersList" class="folders-list"></div>
     </div>
 
+    <!-- Add Prompt Section -->
     <div class="add-section">
       <h2>Add New Prompt</h2>
       <select id="promptFolder" class="folder-select">
         <option value="">Select folder...</option>
       </select>
       <input type="text" id="promptName" placeholder="Prompt name (e.g., 'Scrutinize Answer')" />
-      <textarea id="promptText" placeholder="Enter your prompt here..."></textarea>
+      <textarea id="promptText" placeholder="Enter your prompt here... Use {{variable}} for variables"></textarea>
       <button id="addPrompt" class="btn-primary">Add Prompt</button>
     </div>
 
+    <!-- Prompts List Section -->
     <div class="prompts-section">
       <div class="prompts-header">
         <h2>Your Prompts</h2>
@@ -41,6 +73,14 @@
       </div>
     </div>
 
+    <!-- Trash Section -->
+    <div class="trash-section" id="trashSection" style="display: none;">
+      <h2>🗑️ Trash</h2>
+      <button id="viewTrashBtn" class="btn-secondary">View Trash</button>
+      <div id="trashList" style="display: none;"></div>
+    </div>
+
+    <!-- Backup & Restore Section -->
     <div class="backup-section">
       <h2>Backup & Restore</h2>
 
@@ -56,9 +96,91 @@
       <div class="backup-buttons">
         <button id="exportPrompts" class="btn-secondary">📥 Export Prompts</button>
         <button id="importPrompts" class="btn-secondary">📤 Import Prompts</button>
+        <button id="sharePromptsBtn" class="btn-secondary">🔗 Share Prompts</button>
+        <button id="importFromCodeBtn" class="btn-secondary">📝 Import from Code</button>
       </div>
       <input type="file" id="fileInput" accept=".json" style="display: none;">
       <p class="backup-info">Export your prompts to backup or share. Import to restore from a backup.</p>
+    </div>
+  </div>
+
+  <!-- Edit Modal -->
+  <div id="editModal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Edit Prompt</h2>
+        <span class="modal-close">&times;</span>
+      </div>
+      <div class="modal-body">
+        <label>Prompt Name:</label>
+        <input type="text" id="editPromptName" class="modal-input" />
+
+        <label>Folder:</label>
+        <select id="editPromptFolder" class="modal-select"></select>
+
+        <label>Prompt Text:</label>
+        <textarea id="editPromptText" class="modal-textarea"></textarea>
+
+        <div class="modal-info">
+          <small>Use {{variable}} syntax for reusable variables</small>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="saveEditBtn" class="btn-primary">Save Changes</button>
+        <button id="cancelEditBtn" class="btn-secondary">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Variable Input Modal -->
+  <div id="variableModal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Fill in Variables</h2>
+        <span class="modal-close">&times;</span>
+      </div>
+      <div class="modal-body" id="variableInputs"></div>
+      <div class="modal-footer">
+        <button id="insertWithVariablesBtn" class="btn-primary">Insert Prompt</button>
+        <button id="cancelVariablesBtn" class="btn-secondary">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Share Modal -->
+  <div id="shareModal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Share Prompts</h2>
+        <span class="modal-close">&times;</span>
+      </div>
+      <div class="modal-body">
+        <p>Share this code with others to import your prompts:</p>
+        <textarea id="shareCode" class="share-code-textarea" readonly></textarea>
+        <div id="qrCodeContainer" style="text-align: center; margin-top: 15px;"></div>
+      </div>
+      <div class="modal-footer">
+        <button id="copyShareCodeBtn" class="btn-primary">Copy Code</button>
+        <button id="closeShareBtn" class="btn-secondary">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Import from Code Modal -->
+  <div id="importCodeModal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Import from Code</h2>
+        <span class="modal-close">&times;</span>
+      </div>
+      <div class="modal-body">
+        <p>Paste the share code here:</p>
+        <textarea id="importCodeInput" class="share-code-textarea" placeholder="Paste code here..."></textarea>
+      </div>
+      <div class="modal-footer">
+        <button id="importCodeBtn" class="btn-primary">Import</button>
+        <button id="cancelImportCodeBtn" class="btn-secondary">Cancel</button>
+      </div>
     </div>
   </div>
 
