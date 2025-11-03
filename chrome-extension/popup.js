@@ -1498,3 +1498,490 @@ function formatTimeAgo(timestamp) {
   if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
   return `${Math.floor(seconds / 86400)}d ago`;
 }
+
+// ============================================================================
+// V2.1 NEW FEATURES
+// ============================================================================
+
+// Dark Mode
+const settingsBtn = document.getElementById('settingsBtn');
+const settingsPanel = document.getElementById('settingsPanel');
+const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+const darkModeToggle = document.getElementById('darkModeToggle');
+const autoThemeToggle = document.getElementById('autoThemeToggle');
+
+// Settings Panel
+settingsBtn.addEventListener('click', () => {
+  settingsPanel.style.display = settingsPanel.style.display === 'none' ? 'block' : 'none';
+});
+
+closeSettingsBtn.addEventListener('click', () => {
+  settingsPanel.style.display = 'none';
+});
+
+// Dark Mode Functions
+async function initializeDarkMode() {
+  const settings = await chrome.storage.sync.get(['darkMode', 'autoTheme']);
+
+  darkModeToggle.checked = settings.darkMode || false;
+  autoThemeToggle.checked = settings.autoTheme || false;
+
+  applyTheme(settings);
+
+  // Listen for system theme changes
+  if (settings.autoTheme) {
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+      if (autoThemeToggle.checked) {
+        document.body.classList.toggle('dark-mode', e.matches);
+      }
+    });
+  }
+}
+
+function applyTheme(settings) {
+  if (settings.autoTheme) {
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.body.classList.toggle('dark-mode', prefersDark);
+  } else {
+    document.body.classList.toggle('dark-mode', settings.darkMode);
+  }
+}
+
+darkModeToggle.addEventListener('change', async (e) => {
+  const darkMode = e.target.checked;
+  await chrome.storage.sync.set({ darkMode });
+
+  if (!autoThemeToggle.checked) {
+    document.body.classList.toggle('dark-mode', darkMode);
+  }
+
+  showToast(darkMode ? 'Dark mode enabled' : 'Light mode enabled');
+});
+
+autoThemeToggle.addEventListener('change', async (e) => {
+  const autoTheme = e.target.checked;
+  await chrome.storage.sync.set({ autoTheme });
+
+  if (autoTheme) {
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.body.classList.toggle('dark-mode', prefersDark);
+    showToast('Auto theme enabled');
+  } else {
+    applyTheme({ darkMode: darkModeToggle.checked, autoTheme: false });
+    showToast('Auto theme disabled');
+  }
+});
+
+// Initialize dark mode on load
+document.addEventListener('DOMContentLoaded', initializeDarkMode);
+
+// Collapsible Sections
+document.querySelectorAll('.section-header').forEach(header => {
+  header.addEventListener('click', () => {
+    const section = header.closest('.collapsible-section');
+    section.classList.toggle('collapsed');
+
+    // Save state
+    const sectionName = header.dataset.section;
+    chrome.storage.local.set({
+      [`section_${sectionName}_collapsed`]: section.classList.contains('collapsed')
+    });
+  });
+});
+
+// Restore collapsed states
+async function restoreCollapsedStates() {
+  const states = await chrome.storage.local.get(null);
+
+  document.querySelectorAll('.section-header').forEach(header => {
+    const sectionName = header.dataset.section;
+    const isCollapsed = states[`section_${sectionName}_collapsed`];
+
+    if (isCollapsed) {
+      header.closest('.collapsible-section').classList.add('collapsed');
+    }
+  });
+}
+
+document.addEventListener('DOMContentLoaded', restoreCollapsedStates);
+
+// Debounced Search
+let searchDebounceTimer;
+const SEARCH_DEBOUNCE_MS = 150;
+
+const originalHandleSearch = handleSearch;
+handleSearch = function() {
+  clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = setTimeout(() => {
+    originalHandleSearch();
+  }, SEARCH_DEBOUNCE_MS);
+};
+
+// Templates Library
+const templatesBtn = document.getElementById('templatesBtn');
+const templatesModal = document.getElementById('templatesModal');
+const closeTemplatesBtn = document.getElementById('closeTemplatesBtn');
+const templatesList = document.getElementById('templatesList');
+
+const PROMPT_TEMPLATES = [
+  {
+    category: 'CODE REVIEW',
+    name: 'Security-Focused Code Review',
+    description: 'Review code for security vulnerabilities, input validation, and authentication issues.',
+    text: 'Review this code for security issues including:\n- Input validation and sanitization\n- Authentication and authorization\n- SQL injection and XSS vulnerabilities\n- Secure data storage\n- API security\nProvide specific fixes with code examples.'
+  },
+  {
+    category: 'CODE REVIEW',
+    name: 'Performance Code Review',
+    description: 'Analyze code for performance bottlenecks and optimization opportunities.',
+    text: 'Analyze this code for performance improvements:\n- Identify bottlenecks and inefficiencies\n- Suggest algorithmic optimizations\n- Recommend caching strategies\n- Highlight resource usage issues\nProvide benchmarks and optimized code examples.'
+  },
+  {
+    category: 'WRITING',
+    name: 'Professional Email',
+    description: 'Draft professional business emails with proper tone and structure.',
+    text: 'Write a professional email about {{topic}} to {{recipient}}.\nTone: {{tone}}\nKey points:\n- {{point1}}\n- {{point2}}\n- {{point3}}\nKeep it concise and actionable.'
+  },
+  {
+    category: 'WRITING',
+    name: 'Blog Post Outline',
+    description: 'Create comprehensive blog post outlines with SEO considerations.',
+    text: 'Create a blog post outline about {{topic}} for {{audience}}.\nInclude:\n- Compelling title (SEO optimized)\n- Introduction hook\n- 5-7 main sections with subpoints\n- Conclusion with CTA\n- Meta description\nTarget length: {{word_count}} words'
+  },
+  {
+    category: 'LEARNING',
+    name: 'Explain Like I\'m 5',
+    description: 'Simplify complex topics using analogies and simple language.',
+    text: 'Explain {{concept}} as if I\'m 5 years old.\nUse:\n- Simple everyday analogies\n- No technical jargon\n- Short sentences\n- Relatable examples from daily life\nMake it fun and engaging!'
+  },
+  {
+    category: 'LEARNING',
+    name: 'Technical Deep Dive',
+    description: 'Comprehensive technical explanations with examples and edge cases.',
+    text: 'Provide a technical deep dive on {{topic}}.\nCover:\n- Core concepts and principles\n- Implementation details\n- Common edge cases\n- Best practices\n- Performance considerations\n- Real-world examples\nAssume advanced knowledge.'
+  },
+  {
+    category: 'BUSINESS',
+    name: 'Meeting Notes Summary',
+    description: 'Summarize meeting notes into action items and key decisions.',
+    text: 'Summarize these meeting notes into:\n1. Key Decisions Made\n2. Action Items (with owners and deadlines)\n3. Open Questions\n4. Next Steps\n\nMake it concise and scannable.'
+  },
+  {
+    category: 'BUSINESS',
+    name: 'Project Proposal',
+    description: 'Create structured project proposals with timeline and resources.',
+    text: 'Create a project proposal for {{project_name}}.\nInclude:\n- Executive Summary\n- Problem Statement\n- Proposed Solution\n- Timeline & Milestones\n- Resource Requirements\n- Expected Outcomes\n- Risks & Mitigation\nTarget audience: {{stakeholders}}'
+  },
+  {
+    category: 'DEBUGGING',
+    name: 'Error Analysis',
+    description: 'Analyze error messages and provide debugging steps.',
+    text: 'Analyze this error and help me debug:\n\nError: {{error_message}}\n\nProvide:\n1. What the error means\n2. Common causes\n3. Step-by-step debugging approach\n4. Preventive measures\n5. Code examples of fixes'
+  },
+  {
+    category: 'CREATIVE',
+    name: 'Brainstorm Ideas',
+    description: 'Generate creative ideas with different approaches.',
+    text: 'Brainstorm {{number}} creative ideas for {{goal}}.\n\nFor each idea provide:\n- Catchy name\n- One-line description\n- Key benefits\n- Implementation difficulty (1-10)\n- Unique selling point\n\nThink outside the box!'
+  }
+];
+
+templatesBtn.addEventListener('click', () => {
+  loadTemplates();
+  openModal(templatesModal);
+});
+
+closeTemplatesBtn.addEventListener('click', () => {
+  closeModal(templatesModal);
+});
+
+function loadTemplates() {
+  templatesList.innerHTML = '';
+
+  PROMPT_TEMPLATES.forEach(template => {
+    const card = document.createElement('div');
+    card.className = 'template-card';
+
+    card.innerHTML = `
+      <div class="template-category">${template.category}</div>
+      <div class="template-name">${template.name}</div>
+      <div class="template-description">${template.description}</div>
+    `;
+
+    card.onclick = () => importTemplate(template);
+    templatesList.appendChild(card);
+  });
+}
+
+async function importTemplate(template) {
+  const data = await chrome.storage.sync.get(['prompts', 'folders']);
+  const prompts = data.prompts || [];
+  const folders = data.folders || [];
+  const defaultFolder = folders.find(f => f.isDefault);
+
+  prompts.push({
+    name: template.name,
+    text: template.text,
+    folderId: defaultFolder.id,
+    favorite: false,
+    usageCount: 0,
+    lastUsed: null,
+    createdAt: Date.now(),
+    history: []
+  });
+
+  await chrome.storage.sync.set({ prompts });
+  await loadPrompts();
+  closeModal(templatesModal);
+  showToast(`Template "${template.name}" imported!`);
+  await performAutoBackup();
+}
+
+// Analytics Dashboard
+const analyticsBtn = document.getElementById('analyticsBtn');
+const analyticsModal = document.getElementById('analyticsModal');
+const closeAnalyticsBtn = document.getElementById('closeAnalyticsBtn');
+
+analyticsBtn.addEventListener('click', () => {
+  loadAnalytics();
+  openModal(analyticsModal);
+});
+
+closeAnalyticsBtn.addEventListener('click', () => {
+  closeModal(analyticsModal);
+});
+
+async function loadAnalytics() {
+  const data = await chrome.storage.sync.get(['prompts']);
+  const prompts = data.prompts || [];
+
+  // Top prompts
+  const topPrompts = prompts
+    .filter(p => p.usageCount > 0)
+    .sort((a, b) => b.usageCount - a.usageCount)
+    .slice(0, 10);
+
+  const topPromptsList = document.getElementById('topPromptsList');
+  topPromptsList.innerHTML = '';
+
+  if (topPrompts.length === 0) {
+    topPromptsList.innerHTML = '<p style="text-align: center; color: var(--text-tertiary);">No usage data yet</p>';
+  } else {
+    topPrompts.forEach(prompt => {
+      const item = document.createElement('div');
+      item.className = 'top-prompt-item';
+      item.innerHTML = `
+        <span class="top-prompt-name">${prompt.name}</span>
+        <span class="top-prompt-count">${prompt.usageCount}x</span>
+      `;
+      topPromptsList.appendChild(item);
+    });
+  }
+
+  // Favorites count
+  const favoritesCount = prompts.filter(p => p.favorite).length;
+  document.getElementById('favoritesCount').innerHTML = `
+    <div class="analytics-number">${favoritesCount}</div>
+    <div class="analytics-label">Favorite Prompts</div>
+  `;
+
+  // Total usage
+  const totalUsage = prompts.reduce((sum, p) => sum + (p.usageCount || 0), 0);
+  document.getElementById('totalUsage').innerHTML = `
+    <div class="analytics-number">${totalUsage}</div>
+    <div class="analytics-label">Total Uses</div>
+  `;
+}
+
+// Quick Edit Mode (Double-click)
+function enableQuickEdit(promptCard, index, prompt) {
+  const nameElement = promptCard.querySelector('h3');
+  const originalName = prompt.name;
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'quick-edit-input';
+  input.value = originalName;
+
+  nameElement.replaceWith(input);
+  input.focus();
+  input.select();
+
+  const saveEdit = async () => {
+    const newName = input.value.trim();
+    if (newName && newName !== originalName) {
+      const data = await chrome.storage.sync.get(['prompts']);
+      const prompts = data.prompts || [];
+      if (prompts[index]) {
+        prompts[index].name = newName;
+        await chrome.storage.sync.set({ prompts });
+        await loadPrompts();
+        showToast('Prompt renamed!');
+        await performAutoBackup();
+      }
+    } else {
+      await loadPrompts(); // Reload to restore original
+    }
+  };
+
+  input.addEventListener('blur', saveEdit);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') saveEdit();
+    if (e.key === 'Escape') loadPrompts();
+  });
+}
+
+// Update displayPrompts to add double-click handler
+const originalDisplayPrompts = displayPrompts;
+displayPrompts = function(prompts, folders) {
+  originalDisplayPrompts(prompts, folders);
+
+  // Add double-click handlers
+  document.querySelectorAll('.prompt-card').forEach((card, index) => {
+    const nameElement = card.querySelector('h3');
+    if (nameElement && prompts[index]) {
+      nameElement.addEventListener('dblclick', (e) => {
+        e.stopPropagation();
+        enableQuickEdit(card, index, prompts[index]);
+      });
+    }
+  });
+};
+
+// Import/Export Validation
+const originalImportPrompts = importPrompts;
+importPrompts = async function(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  // Validate file type
+  if (!file.name.endsWith('.json')) {
+    showToast('Please select a JSON file', 'error');
+    fileInput.value = '';
+    return;
+  }
+
+  // Validate file size (max 5MB)
+  if (file.size > 5 * 1024 * 1024) {
+    showToast('File too large (max 5MB)', 'error');
+    fileInput.value = '';
+    return;
+  }
+
+  const reader = new FileReader();
+
+  reader.onload = async (e) => {
+    try {
+      const importData = JSON.parse(e.target.result);
+
+      // Validate schema
+      if (!validateImportSchema(importData)) {
+        showToast('Invalid file format!', 'error');
+        fileInput.value = '';
+        return;
+      }
+
+      // Auto-backup before import
+      await exportPrompts();
+      showToast('Backup created before import');
+
+      // Continue with original import logic
+      await originalImportPrompts.call(this, event);
+
+    } catch (error) {
+      logError('Import failed', error);
+      showToast('Failed to import. Invalid file.', 'error');
+      fileInput.value = '';
+    }
+  };
+
+  reader.readAsText(file);
+};
+
+function validateImportSchema(data) {
+  // Check version
+  if (!data.version || !data.exportDate) return false;
+
+  // Check prompts array
+  if (!Array.isArray(data.prompts)) return false;
+
+  // Validate each prompt has required fields
+  return data.prompts.every(p =>
+    p.name && typeof p.name === 'string' &&
+    p.text && typeof p.text === 'string'
+  );
+}
+
+// Error Reporting System
+async function logError(context, error) {
+  const errorLog = {
+    context,
+    message: error.message || String(error),
+    stack: error.stack,
+    timestamp: Date.now(),
+    version: '2.1'
+  };
+
+  // Store locally
+  const data = await chrome.storage.local.get(['errorLogs']);
+  const logs = data.errorLogs || [];
+  logs.push(errorLog);
+
+  // Keep last 50 errors
+  if (logs.length > 50) {
+    logs.shift();
+  }
+
+  await chrome.storage.local.set({ errorLogs: logs });
+
+  console.error('Logged error:', errorLog);
+}
+
+// Wrap critical functions with error handling
+window.addEventListener('error', (e) => {
+  logError('Global error', e.error || e.message);
+});
+
+window.addEventListener('unhandledrejection', (e) => {
+  logError('Unhandled promise rejection', e.reason);
+});
+
+// Migration System
+const CURRENT_VERSION = '2.1';
+
+async function runMigrations() {
+  const data = await chrome.storage.local.get(['schemaVersion']);
+  const currentSchema = data.schemaVersion || '1.0';
+
+  if (currentSchema === CURRENT_VERSION) return;
+
+  console.log(`Migrating from ${currentSchema} to ${CURRENT_VERSION}`);
+
+  // Run migrations
+  if (currentSchema === '1.0') {
+    await migrateFrom1To2();
+  }
+
+  await chrome.storage.local.set({ schemaVersion: CURRENT_VERSION });
+}
+
+async function migrateFrom1To2() {
+  // Add new fields to existing prompts
+  const data = await chrome.storage.sync.get(['prompts']);
+  const prompts = data.prompts || [];
+
+  const migratedPrompts = prompts.map(p => ({
+    ...p,
+    favorite: p.favorite !== undefined ? p.favorite : false,
+    usageCount: p.usageCount || 0,
+    lastUsed: p.lastUsed || null,
+    createdAt: p.createdAt || Date.now(),
+    history: p.history || []
+  }));
+
+  await chrome.storage.sync.set({ prompts: migratedPrompts });
+  console.log('Migration 1.0 -> 2.0 complete');
+}
+
+// Run migrations on load
+document.addEventListener('DOMContentLoaded', runMigrations);
