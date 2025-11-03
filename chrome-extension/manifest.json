@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "LLM Prompt Manager",
+  "version": "2.0",
+  "description": "Quickly access your saved LLM prompts via right-click menu",
+  "permissions": [
+    "contextMenus",
+    "storage",
+    "scripting",
+    "activeTab",
+    "downloads"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html"
+  }
+}
