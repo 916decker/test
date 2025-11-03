@@ -85,7 +85,36 @@ document.addEventListener('DOMContentLoaded', async () => {
   await displayRecentlyUsed();
   await displayFavorites();
   await loadTrash();
+
+  // Check for captured text from "Edit before saving" feature
+  await checkForCapturedText();
 });
+
+// ============================================================================
+// AUTO-FILL CAPTURED TEXT (for "Edit before saving" feature)
+// ============================================================================
+
+async function checkForCapturedText() {
+  // Check if there's temporary captured text from context menu
+  const tempData = await chrome.storage.local.get(['tempPromptText', 'tempSourceUrl']);
+
+  if (tempData.tempPromptText) {
+    // Auto-fill the prompt text field
+    promptTextInput.value = tempData.tempPromptText;
+
+    // Focus on the name field so user can immediately type the title
+    promptNameInput.focus();
+
+    // Show a helpful toast
+    showToast('✏️ Text captured! Add a title and save', 'info');
+
+    // Clear the temporary storage
+    await chrome.storage.local.remove(['tempPromptText', 'tempSourceUrl']);
+
+    // Optionally: Scroll to the add prompt section if it's not visible
+    promptNameInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+}
 
 // ============================================================================
 // EVENT LISTENERS
