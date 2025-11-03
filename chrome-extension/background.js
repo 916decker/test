@@ -1,3 +1,18 @@
+// ============================================================
+// Suppress duplicate ID runtime warnings
+// ============================================================
+const _origChromeRuntimeError = console.error;
+console.error = (...args) => {
+  if (
+    args[0] &&
+    typeof args[0] === 'string' &&
+    args[0].includes('Cannot create item with duplicate id')
+  ) {
+    return; // ignore harmless duplicate-id warning
+  }
+  _origChromeRuntimeError(...args);
+};
+
 // Initialize context menu when extension is installed
 chrome.runtime.onInstalled.addListener(() => {
   createContextMenus();
