@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "LLM Prompt Manager",
-  "version": "2.6",
+  "version": "2.7",
   "description": "Quickly access your saved LLM prompts via right-click menu",
   "permissions": [
     "contextMenus",

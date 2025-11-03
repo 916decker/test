@@ -233,8 +233,18 @@ async function createContextMenus() {
 // Handle context menu clicks
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId === 'manage-prompts') {
-    // Open the extension popup
-    chrome.action.openPopup();
+    // Try to open popup, but show notification if it fails
+    try {
+      await chrome.action.openPopup();
+    } catch (error) {
+      // Popup can't be opened programmatically in some contexts
+      chrome.notifications.create({
+        type: 'basic',
+        title: 'Open Extension',
+        message: 'Click the extension icon to manage your prompts',
+        priority: 0
+      });
+    }
     return;
   }
 
@@ -243,23 +253,24 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     const selectedText = info.selectionText;
 
     if (selectedText && selectedText.trim()) {
-      // Open extension popup with pre-filled text
       // Store selected text temporarily
       await chrome.storage.local.set({
         tempPromptText: selectedText,
         tempSourceUrl: tab.url
       });
 
-      chrome.action.openPopup();
-
-      // Show notification
-      chrome.notifications.create({
-        type: 'basic',
-        iconUrl: 'icon48.png',
-        title: 'Edit in Popup',
-        message: 'Opening extension to edit prompt details',
-        priority: 0
-      });
+      // Try to open popup programmatically
+      try {
+        await chrome.action.openPopup();
+      } catch (error) {
+        // Fallback: Show notification asking user to click extension icon
+        chrome.notifications.create({
+          type: 'basic',
+          title: '✏️ Text Captured!',
+          message: 'Click the extension icon to edit and save. Text is already filled in!',
+          priority: 2
+        });
+      }
     }
     return;
   }
@@ -284,7 +295,6 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 
         chrome.notifications.create({
           type: 'basic',
-          iconUrl: 'icon48.png',
           title: '✅ Prompt Saved!',
           message: `"${newPrompt.name}" (${charCount} chars)\nSaved to ${folder ? folder.name : 'Default'}`,
           priority: 1
@@ -346,7 +356,6 @@ chrome.commands.onCommand.addListener(async (command) => {
           // Show notification with keyboard indicator
           chrome.notifications.create({
             type: 'basic',
-            iconUrl: 'icon48.png',
             title: '⚡ Prompt Saved! (Alt+Shift+S)',
             message: `"${newPrompt.name}" (${charCount} chars)\nFrom: ${tab.title}`,
             priority: 1
@@ -356,7 +365,6 @@ chrome.commands.onCommand.addListener(async (command) => {
         // No text selected - show warning notification
         chrome.notifications.create({
           type: 'basic',
-          iconUrl: 'icon48.png',
           title: 'No Text Selected',
           message: 'Please select some text before using Alt+Shift+S',
           priority: 0
