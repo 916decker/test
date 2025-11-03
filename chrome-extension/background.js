@@ -25,6 +25,17 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
   }
 });
 
+// Storage helper that checks both sync and local
+async function getStorage(keys) {
+  // Try sync first
+  let data = await chrome.storage.sync.get(keys);
+  if (data && Object.keys(data).length > 0) {
+    return data;
+  }
+  // Fallback to local
+  return await chrome.storage.local.get(keys);
+}
+
 // Create context menus based on saved prompts and folders
 async function createContextMenus() {
   // Remove all existing context menus
@@ -38,7 +49,7 @@ async function createContextMenus() {
   });
 
   // Get saved prompts and folders
-  const data = await chrome.storage.sync.get(['prompts', 'folders']);
+  const data = await getStorage(['prompts', 'folders']);
   const prompts = data.prompts || [];
   const folders = data.folders || [];
 
@@ -101,7 +112,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   // Handle prompt selection
   if (info.menuItemId.startsWith('prompt-')) {
     const index = parseInt(info.menuItemId.replace('prompt-', ''));
-    const data = await chrome.storage.sync.get(['prompts']);
+    const data = await getStorage(['prompts']);
     const prompts = data.prompts || [];
 
     if (prompts[index]) {

@@ -1366,7 +1366,7 @@ async function importPrompts(event) {
         return;
       }
 
-      const existingData = await chrome.storage.sync.get(['prompts', 'folders']);
+      const existingData = await smartStorage.get(['prompts', 'folders']);
       let existingFolders = existingData.folders || [];
       let defaultFolder = existingFolders.find(f => f.isDefault);
 
@@ -1378,7 +1378,7 @@ async function importPrompts(event) {
           isDefault: true
         };
         existingFolders.push(newDefault);
-        await chrome.storage.sync.set({ folders: existingFolders });
+        await smartStorage.set({ folders: existingFolders });
         defaultFolder = newDefault;
         showToast('Created default folder');
       }
@@ -1431,7 +1431,7 @@ async function importPrompts(event) {
 
         const mergedFolders = [...existingFolders, ...newFolders];
 
-        await chrome.storage.sync.set({ prompts: mergedPrompts, folders: mergedFolders });
+        await smartStorage.set({ prompts: mergedPrompts, folders: mergedFolders });
         showToast(`Added ${validPrompts.length} prompts!`);
       } else {
         const newFolders = [defaultFolder, ...importedFolders.filter(f => !f.isDefault).map(f => ({
@@ -1440,7 +1440,7 @@ async function importPrompts(event) {
           isDefault: false
         }))];
 
-        await chrome.storage.sync.set({ prompts: validPrompts, folders: newFolders });
+        await smartStorage.set({ prompts: validPrompts, folders: newFolders });
         showToast(`Imported ${validPrompts.length} prompts!`);
       }
 
@@ -1521,6 +1521,59 @@ function openModal(modal) {
 function closeModal(modal) {
   modal.style.display = 'none';
 }
+
+// ============================================================================
+// STORAGE QUOTA MANAGEMENT
+// ============================================================================
+
+// Storage wrapper that handles quota exceeded errors
+const smartStorage = {
+  async get(keys) {
+    // Try sync first, fallback to local
+    try {
+      const syncData = await chrome.storage.sync.get(keys);
+      // Check if we have data in sync
+      if (syncData && Object.keys(syncData).length > 0) {
+        return syncData;
+      }
+    } catch (error) {
+      console.warn('Sync storage unavailable, using local:', error);
+    }
+
+    // Fallback to local storage
+    return await chrome.storage.local.get(keys);
+  },
+
+  async set(items) {
+    // Calculate approximate size
+    const dataSize = JSON.stringify(items).length;
+    const SYNC_QUOTA_BYTES_PER_ITEM = 8192;
+
+    // If data is too large, use local storage
+    if (dataSize > SYNC_QUOTA_BYTES_PER_ITEM * 0.8) {
+      console.warn(`Data size (${dataSize} bytes) exceeds sync quota, using local storage`);
+      await chrome.storage.local.set(items);
+      showToast('Large dataset - using local storage', 'info');
+      return { usedLocal: true };
+    }
+
+    // Try sync storage first
+    try {
+      await chrome.storage.sync.set(items);
+      return { usedLocal: false };
+    } catch (error) {
+      // Check if it's a quota error
+      if (error.message && error.message.includes('QUOTA')) {
+        console.warn('Quota exceeded, falling back to local storage:', error);
+        await chrome.storage.local.set(items);
+        showToast('Switched to local storage (quota limit)', 'warning');
+        return { usedLocal: true };
+      }
+      // Re-throw other errors
+      throw error;
+    }
+  }
+};
 
 // ============================================================================
 // UTILITY FUNCTIONS
