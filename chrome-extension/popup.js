@@ -1329,8 +1329,11 @@ async function importPrompts(event) {
      let existingFolders = existingData.folders || [];
 let defaultFolder = existingFolders.find(f => f.isDefault);
 
+let existingFolders = existingData.folders || [];
+let defaultFolder = existingFolders.find(f => f.isDefault);
+
 // ============================================================
-// SAFETY PATCH (fixed): ensure default folder exists AND reload after creation
+// FINAL SAFETY PATCH: ensure a valid defaultFolder reference
 // ============================================================
 if (!defaultFolder) {
   const newDefault = {
@@ -1344,6 +1347,17 @@ if (!defaultFolder) {
 
   console.warn('⚠️ Auto-created missing default folder (folder_default_bootstrap)');
   showToast('Created a Default folder automatically to complete import.');
+
+  // 🔁 Re-fetch to ensure defaultFolder is now in memory
+  const refreshed = await chrome.storage.sync.get('folders');
+  existingFolders = refreshed.folders || [newDefault];
+  defaultFolder = existingFolders.find(f => f.isDefault) || newDefault;
+}
+
+// ✅ Guarantee fallback if something went wrong
+if (!defaultFolder || !defaultFolder.id) {
+  defaultFolder = { id: 'folder_default_bootstrap', name: 'Default', isDefault: true };
+}
 
   // Re-fetch updated folders and reassign
   const updated = await chrome.storage.sync.get('folders');
