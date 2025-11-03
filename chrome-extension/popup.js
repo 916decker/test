@@ -1531,7 +1531,7 @@ const smartStorage = {
   async get(keys) {
     // Try sync first, fallback to local
     try {
-      const syncData = await smartStorage.get(keys);
+      const syncData = await chrome.storage.sync.get(keys);
       // Check if we have data in sync
       if (syncData && Object.keys(syncData).length > 0) {
         return syncData;
@@ -1559,7 +1559,7 @@ const smartStorage = {
 
     // Try sync storage first
     try {
-      await smartStorage.set(items);
+      await chrome.storage.sync.set(items);
       return { usedLocal: false };
     } catch (error) {
       // Check if it's a quota error
