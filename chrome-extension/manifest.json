@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "LLM Prompt Manager",
-  "version": "2.7",
+  "version": "2.8",
   "description": "Quickly access your saved LLM prompts via right-click menu",
   "permissions": [
     "contextMenus",
@@ -14,7 +14,8 @@
   "commands": {
     "save-selection": {
       "suggested_key": {
-        "default": "Alt+Shift+S"
+        "default": "Alt+Shift+S",
+        "mac": "Command+Shift+S"
       },
       "description": "Save selected text to LLM Prompt Manager"
     }

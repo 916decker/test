@@ -73,7 +73,10 @@ function createMenuItem(options) {
 // Feature #6: Saves source URL with prompt
 // ============================================================
 async function savePromptToStorage(selectedText, sourceUrl = null, folderId = null) {
+  console.log('[savePromptToStorage] Called with text length:', selectedText?.length || 0);
+
   if (!selectedText || !selectedText.trim()) {
+    console.warn('[savePromptToStorage] No text provided or text is empty');
     return false;
   }
 
@@ -81,6 +84,9 @@ async function savePromptToStorage(selectedText, sourceUrl = null, folderId = nu
   const data = await getStorage(['prompts', 'folders']);
   let folders = data.folders || [];
   let prompts = data.prompts || [];
+
+  console.log('[savePromptToStorage] Current prompts count:', prompts.length);
+  console.log('[savePromptToStorage] Current folders count:', folders.length);
 
   // Ensure default folder exists
   let defaultFolder = folders.find(f => f.isDefault);
@@ -114,21 +120,28 @@ async function savePromptToStorage(selectedText, sourceUrl = null, folderId = nu
   // Add to prompts array
   prompts.push(newPrompt);
 
+  console.log('[savePromptToStorage] Created new prompt:', newPrompt.id);
+  console.log('[savePromptToStorage] Total prompts after save:', prompts.length);
+
   // Save to storage (will use smartStorage logic)
   const dataSize = JSON.stringify({ prompts, folders }).length;
   const SYNC_QUOTA_BYTES_PER_ITEM = 8192;
 
   if (dataSize > SYNC_QUOTA_BYTES_PER_ITEM * 0.8) {
+    console.log('[savePromptToStorage] Saving to local storage (size limit)');
     await chrome.storage.local.set({ prompts, folders });
   } else {
     try {
+      console.log('[savePromptToStorage] Saving to sync storage');
       await chrome.storage.sync.set({ prompts, folders });
     } catch (error) {
       // Fallback to local if sync fails
+      console.warn('[savePromptToStorage] Sync failed, falling back to local storage:', error);
       await chrome.storage.local.set({ prompts, folders });
     }
   }
 
+  console.log('[savePromptToStorage] Save complete!');
   return newPrompt;
 }
 
@@ -243,6 +256,10 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         title: 'Open Extension',
         message: 'Click the extension icon to manage your prompts',
         priority: 0
+      }, (notificationId) => {
+        if (chrome.runtime.lastError) {
+          console.error('Notification error:', chrome.runtime.lastError);
+        }
       });
     }
     return;
@@ -269,6 +286,10 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
           title: '✏️ Text Captured!',
           message: 'Click the extension icon to edit and save. Text is already filled in!',
           priority: 2
+        }, (notificationId) => {
+          if (chrome.runtime.lastError) {
+            console.error('Notification error:', chrome.runtime.lastError);
+          }
         });
       }
     }
@@ -279,6 +300,9 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId.startsWith('save-to-folder-')) {
     const folderId = info.menuItemId.replace('save-to-folder-', '');
     const selectedText = info.selectionText;
+
+    console.log('[SAVE] Attempting to save highlighted text to folder:', folderId);
+    console.log('[SAVE] Selected text length:', selectedText?.length || 0);
 
     if (selectedText && selectedText.trim()) {
       // Feature #5: Get character count
@@ -298,8 +322,26 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
           title: '✅ Prompt Saved!',
           message: `"${newPrompt.name}" (${charCount} chars)\nSaved to ${folder ? folder.name : 'Default'}`,
           priority: 1
+        }, (notificationId) => {
+          if (chrome.runtime.lastError) {
+            console.error('Notification error:', chrome.runtime.lastError);
+          }
         });
+      } else {
+        console.error('Failed to save prompt - savePromptToStorage returned false');
       }
+    } else {
+      console.warn('[SAVE] No text selected or text is empty');
+      chrome.notifications.create({
+        type: 'basic',
+        title: '⚠️ No Text Selected',
+        message: 'Please highlight some text before saving to LLM Prompt Manager',
+        priority: 0
+      }, (notificationId) => {
+        if (chrome.runtime.lastError) {
+          console.error('Notification error:', chrome.runtime.lastError);
+        }
+      });
     }
     return;
   }
@@ -353,21 +395,37 @@ chrome.commands.onCommand.addListener(async (command) => {
         const newPrompt = await savePromptToStorage(selectedText, tab.url);
 
         if (newPrompt) {
-          // Show notification with keyboard indicator
+          // Show notification with keyboard indicator (platform-aware)
+          const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+          const shortcut = isMac ? 'Cmd+Shift+S' : 'Alt+Shift+S';
+
           chrome.notifications.create({
             type: 'basic',
-            title: '⚡ Prompt Saved! (Alt+Shift+S)',
+            title: `⚡ Prompt Saved! (${shortcut})`,
             message: `"${newPrompt.name}" (${charCount} chars)\nFrom: ${tab.title}`,
             priority: 1
+          }, (notificationId) => {
+            if (chrome.runtime.lastError) {
+              console.error('Notification error:', chrome.runtime.lastError);
+            }
           });
+        } else {
+          console.error('Failed to save prompt via keyboard - savePromptToStorage returned false');
         }
       } else {
-        // No text selected - show warning notification
+        // No text selected - show warning notification (platform-aware)
+        const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+        const shortcut = isMac ? 'Cmd+Shift+S' : 'Alt+Shift+S';
+
         chrome.notifications.create({
           type: 'basic',
           title: 'No Text Selected',
-          message: 'Please select some text before using Alt+Shift+S',
+          message: `Please select some text before using ${shortcut}`,
           priority: 0
+        }, (notificationId) => {
+          if (chrome.runtime.lastError) {
+            console.error('Notification error:', chrome.runtime.lastError);
+          }
         });
       }
     } catch (error) {
