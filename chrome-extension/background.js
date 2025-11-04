@@ -254,8 +254,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
       chrome.notifications.create({
         type: 'basic',
         title: 'Open Extension',
-        message: 'Click the extension icon to manage your prompts',
-        priority: 0
+        message: 'Click the extension icon to manage your prompts'
       }, (notificationId) => {
         if (chrome.runtime.lastError) {
           console.error('Notification error:', chrome.runtime.lastError);
@@ -284,8 +283,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         chrome.notifications.create({
           type: 'basic',
           title: '✏️ Text Captured!',
-          message: 'Click the extension icon to edit and save. Text is already filled in!',
-          priority: 2
+          message: 'Click the extension icon to edit and save. Text is already filled in!'
         }, (notificationId) => {
           if (chrome.runtime.lastError) {
             console.error('Notification error:', chrome.runtime.lastError);
@@ -320,8 +318,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         chrome.notifications.create({
           type: 'basic',
           title: '✅ Prompt Saved!',
-          message: `"${newPrompt.name}" (${charCount} chars)\nSaved to ${folder ? folder.name : 'Default'}`,
-          priority: 1
+          message: `"${newPrompt.name}" (${charCount} chars)\nSaved to ${folder ? folder.name : 'Default'}`
         }, (notificationId) => {
           if (chrome.runtime.lastError) {
             console.error('Notification error:', chrome.runtime.lastError);
@@ -335,8 +332,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
       chrome.notifications.create({
         type: 'basic',
         title: '⚠️ No Text Selected',
-        message: 'Please highlight some text before saving to LLM Prompt Manager',
-        priority: 0
+        message: 'Please highlight some text before saving to LLM Prompt Manager'
       }, (notificationId) => {
         if (chrome.runtime.lastError) {
           console.error('Notification error:', chrome.runtime.lastError);
@@ -402,8 +398,7 @@ chrome.commands.onCommand.addListener(async (command) => {
           chrome.notifications.create({
             type: 'basic',
             title: `⚡ Prompt Saved! (${shortcut})`,
-            message: `"${newPrompt.name}" (${charCount} chars)\nFrom: ${tab.title}`,
-            priority: 1
+            message: `"${newPrompt.name}" (${charCount} chars)\nFrom: ${tab.title}`
           }, (notificationId) => {
             if (chrome.runtime.lastError) {
               console.error('Notification error:', chrome.runtime.lastError);
@@ -420,8 +415,7 @@ chrome.commands.onCommand.addListener(async (command) => {
         chrome.notifications.create({
           type: 'basic',
           title: 'No Text Selected',
-          message: `Please select some text before using ${shortcut}`,
-          priority: 0
+          message: `Please select some text before using ${shortcut}`
         }, (notificationId) => {
           if (chrome.runtime.lastError) {
             console.error('Notification error:', chrome.runtime.lastError);
