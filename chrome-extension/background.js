@@ -13,6 +13,49 @@ console.error = (...args) => {
   _origChromeRuntimeError(...args);
 };
 
+// Helper to create notifications safely with delay
+let lastNotificationTime = 0;
+const NOTIFICATION_DELAY_MS = 100; // Small delay between notifications
+
+async function createNotificationSafely(options) {
+  // Ensure minimum delay between notifications
+  const now = Date.now();
+  const timeSinceLastNotification = now - lastNotificationTime;
+  if (timeSinceLastNotification < NOTIFICATION_DELAY_MS) {
+    await new Promise(resolve => setTimeout(resolve, NOTIFICATION_DELAY_MS - timeSinceLastNotification));
+  }
+
+  lastNotificationTime = Date.now();
+
+  // Validate options
+  if (!options || typeof options !== 'object') {
+    console.error('[NOTIFICATION] Invalid options:', options);
+    return null;
+  }
+
+  if (!options.type || !options.title || !options.message) {
+    console.error('[NOTIFICATION] Missing required fields:', options);
+    return null;
+  }
+
+  return new Promise((resolve, reject) => {
+    try {
+      chrome.notifications.create(options, (notificationId) => {
+        if (chrome.runtime.lastError) {
+          console.error('[NOTIFICATION] Error:', chrome.runtime.lastError);
+          reject(chrome.runtime.lastError);
+        } else {
+          console.log('[NOTIFICATION] Created successfully:', notificationId);
+          resolve(notificationId);
+        }
+      });
+    } catch (error) {
+      console.error('[NOTIFICATION] Exception:', error);
+      reject(error);
+    }
+  });
+}
+
 // Initialize context menu when extension is installed
 chrome.runtime.onInstalled.addListener(() => {
   createContextMenus();
@@ -251,14 +294,10 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
       await chrome.action.openPopup();
     } catch (error) {
       // Popup can't be opened programmatically in some contexts
-      chrome.notifications.create({
+      await createNotificationSafely({
         type: 'basic',
         title: 'Open Extension',
         message: 'Click the extension icon to manage your prompts'
-      }, (notificationId) => {
-        if (chrome.runtime.lastError) {
-          console.error('Notification error:', chrome.runtime.lastError);
-        }
       });
     }
     return;
@@ -280,14 +319,10 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         await chrome.action.openPopup();
       } catch (error) {
         // Fallback: Show notification asking user to click extension icon
-        chrome.notifications.create({
+        await createNotificationSafely({
           type: 'basic',
           title: '✏️ Text Captured!',
           message: 'Click the extension icon to edit and save. Text is already filled in!'
-        }, (notificationId) => {
-          if (chrome.runtime.lastError) {
-            console.error('Notification error:', chrome.runtime.lastError);
-          }
         });
       }
     }
@@ -315,28 +350,32 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         const folders = data.folders || [];
         const folder = folders.find(f => f.id === folderId);
 
-        chrome.notifications.create({
+        // Validate data before creating notification
+        const promptName = String(newPrompt.name || 'Untitled').substring(0, 50);
+        const folderName = String(folder ? folder.name : 'Default');
+        const notificationTitle = '✅ Prompt Saved!';
+        const notificationMessage = `"${promptName}" (${charCount} chars)\nSaved to ${folderName}`;
+
+        console.log('[NOTIFICATION] Creating notification with:', {
+          title: notificationTitle,
+          message: notificationMessage,
+          messageLength: notificationMessage.length
+        });
+
+        await createNotificationSafely({
           type: 'basic',
-          title: '✅ Prompt Saved!',
-          message: `"${newPrompt.name}" (${charCount} chars)\nSaved to ${folder ? folder.name : 'Default'}`
-        }, (notificationId) => {
-          if (chrome.runtime.lastError) {
-            console.error('Notification error:', chrome.runtime.lastError);
-          }
+          title: notificationTitle,
+          message: notificationMessage
         });
       } else {
         console.error('Failed to save prompt - savePromptToStorage returned false');
       }
     } else {
       console.warn('[SAVE] No text selected or text is empty');
-      chrome.notifications.create({
+      await createNotificationSafely({
         type: 'basic',
         title: '⚠️ No Text Selected',
         message: 'Please highlight some text before saving to LLM Prompt Manager'
-      }, (notificationId) => {
-        if (chrome.runtime.lastError) {
-          console.error('Notification error:', chrome.runtime.lastError);
-        }
       });
     }
     return;
@@ -395,14 +434,10 @@ chrome.commands.onCommand.addListener(async (command) => {
           const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
           const shortcut = isMac ? 'Cmd+Shift+S' : 'Alt+Shift+S';
 
-          chrome.notifications.create({
+          await createNotificationSafely({
             type: 'basic',
             title: `⚡ Prompt Saved! (${shortcut})`,
             message: `"${newPrompt.name}" (${charCount} chars)\nFrom: ${tab.title}`
-          }, (notificationId) => {
-            if (chrome.runtime.lastError) {
-              console.error('Notification error:', chrome.runtime.lastError);
-            }
           });
         } else {
           console.error('Failed to save prompt via keyboard - savePromptToStorage returned false');
@@ -412,14 +447,10 @@ chrome.commands.onCommand.addListener(async (command) => {
         const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
         const shortcut = isMac ? 'Cmd+Shift+S' : 'Alt+Shift+S';
 
-        chrome.notifications.create({
+        await createNotificationSafely({
           type: 'basic',
           title: 'No Text Selected',
           message: `Please select some text before using ${shortcut}`
-        }, (notificationId) => {
-          if (chrome.runtime.lastError) {
-            console.error('Notification error:', chrome.runtime.lastError);
-          }
         });
       }
     } catch (error) {
