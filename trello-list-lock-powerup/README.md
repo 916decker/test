@@ -18,9 +18,12 @@ If you use Trello's Butler Automations, you know the pain:
 - 🔒 **Lock any list title** with one click
 - 🔓 **Unlock when needed** for legitimate changes
 - 🛡️ **Auto-revert** unauthorized changes (with webhook server)
+- 📱 **Mobile protection** - works on iOS & Android Trello apps
+- 🌐 **Universal protection** - desktop, mobile, API, all sources
 - 🎯 **No coding required** - simple checkbox interface
 - 👀 **Visual badges** show which lists are locked
 - ⚡ **Works with Butler** - protects your automations
+- 📊 **Real-time dashboard** - monitor all activity
 
 ## 🚀 Quick Start (2 Options)
 
@@ -40,7 +43,7 @@ Perfect if you want visual indicators and team reminders.
 
 ### Option 2: Full Protection (With Webhook Server) 🔐 Most Secure
 
-Automatically reverts any unauthorized list name changes.
+Automatically reverts any unauthorized list name changes **from any device**.
 
 1. **Deploy the webhook server** (use Glitch - instructions below)
 2. **Set up Trello webhooks** (one command - instructions below)
@@ -48,9 +51,11 @@ Automatically reverts any unauthorized list name changes.
 
 **What you get:**
 - ✅ Everything from Basic Mode
-- ✅ **Automatic reversion** of name changes
+- ✅ **Automatic reversion** of name changes (2-5 seconds)
+- ✅ **Mobile protection** - works on iOS & Android apps
 - ✅ **Real enforcement** - changes get undone immediately
 - ✅ **Foolproof protection** for Butler Automations
+- ✅ **Works 24/7** - no human intervention needed
 
 ---
 
@@ -204,6 +209,50 @@ https://api.trello.com/1/webhooks?key=YOUR_API_KEY&token=YOUR_TOKEN&callbackURL=
 
 ---
 
+## 📱 Mobile App Protection
+
+### Yes, This Works on Mobile!
+
+One of the biggest advantages of this Power-Up is that it protects list titles **even when someone uses the Trello mobile app**.
+
+**How it works:**
+- Webhook server monitors **ALL** list changes (desktop, mobile, API)
+- When a locked list is renamed from mobile, the change is detected instantly
+- Server automatically reverts the name within 2-5 seconds
+- Mobile app syncs and shows the original name
+
+### Testing Mobile Protection
+
+**On iPhone/iPad:**
+1. Open Trello app on iOS
+2. Try to rename a locked list (one with 🔒 badge)
+3. Name will change briefly, then revert within 5-10 seconds
+4. Pull down to refresh if needed
+
+**On Android:**
+1. Open Trello app on Android
+2. Try to rename a locked list
+3. Name will change briefly, then revert within 5-10 seconds
+4. Swipe down to refresh if needed
+
+**Why the slight delay on mobile?**
+- Mobile apps cache data locally for performance
+- The revert happens instantly on the server
+- But mobile takes a few seconds to sync the change back
+- This is normal and expected!
+
+### Verification Dashboard
+
+Visit `https://your-project.glitch.me/dashboard` to see:
+- Real-time activity log showing all rename attempts
+- Statistics on protected lists
+- Source of changes (you can see mobile attempts!)
+- Confirmation that mobile protection is working
+
+**Want detailed testing steps?** See [MOBILE_TESTING_GUIDE.md](MOBILE_TESTING_GUIDE.md)
+
+---
+
 ## 🔧 Troubleshooting
 
 ### Power-Up won't load
@@ -315,15 +364,18 @@ Only unlock when you need to:
    - Shows visual badges on locked lists
 
 2. **Webhook Server** (server.js):
-   - Listens for Trello board updates
+   - Listens for Trello board updates from ALL sources
+   - Monitors desktop, mobile, and API changes
    - Checks if renamed list is locked
    - Automatically reverts unauthorized changes
    - Runs on Express.js (Node.js)
+   - Includes real-time dashboard for monitoring
 
 3. **Data Storage**:
    - Lock status: Stored in Trello's pluginData (per-list)
    - Original names: Stored with lock status
    - No external database needed
+   - Activity log kept in memory (last 50 events)
 
 ---
 
@@ -345,6 +397,12 @@ A: Yes! This works with all Trello account types.
 
 **Q: Is this safe for production/business use?**
 A: Yes! The code is simple, transparent, and follows Trello's best practices.
+
+**Q: Does this really work on mobile apps?**
+A: Yes! The webhook monitors ALL Trello API calls, including those from mobile apps. When someone renames a list from iPhone, Android, or any other device, the webhook catches it and reverts it automatically. See [MOBILE_TESTING_GUIDE.md](MOBILE_TESTING_GUIDE.md) for testing steps.
+
+**Q: Will mobile users see the revert happen?**
+A: Yes, but with a slight delay (5-10 seconds). The revert happens instantly on the server, but mobile apps take a few seconds to sync. Users will see the name change back, confirming the protection is working.
 
 ### Still Need Help?
 
@@ -374,7 +432,11 @@ After setup, verify everything works:
 | File | Description |
 |------|-------------|
 | `README.md` | This file - complete setup guide |
-| `server.js` | Webhook server for auto-revert (optional) |
+| `TRELLO_DEPLOYMENT_GUIDE.md` | **Step-by-step Trello deployment** (start here!) |
+| `QUICK_START.md` | 5-minute quick start guide |
+| `MOBILE_TESTING_GUIDE.md` | **How to test mobile app protection** |
+| `DEPLOYMENT_OPTIONS.md` | Hosting platform comparison |
+| `server.js` | Enhanced webhook server with mobile support |
 | `client.js` | Power-Up frontend logic |
 | `index.html` | Power-Up main interface |
 | `info.html` | Lock status popup |
