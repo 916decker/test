@@ -1,0 +1,23 @@
+{
+  "install": "npm install",
+  "start": "node server.js",
+  "watch": {
+    "install": {
+      "include": [
+        "^package\\.json$",
+        "^\\.env$"
+      ]
+    },
+    "restart": {
+      "include": [
+        "^server\\.js$",
+        "^client\\.js$"
+      ],
+      "exclude": [
+        "^public/",
+        "^dist/"
+      ]
+    },
+    "throttle": 1000
+  }
+}
