@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="https://p.trellocdn.com/power-up.min.css">
+  <script src="https://p.trellocdn.com/power-up.min.js"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif;
+      padding: 15px;
+      margin: 0;
+      background: white;
+    }
+    h2 {
+      font-size: 16px;
+      margin: 0 0 10px 0;
+      color: #172b4d;
+    }
+    .status {
+      background: #e3fcef;
+      border-left: 3px solid #61bd4f;
+      padding: 10px;
+      border-radius: 3px;
+      margin: 10px 0;
+    }
+    .status p {
+      margin: 5px 0;
+      font-size: 13px;
+      color: #172b4d;
+    }
+    ul {
+      margin: 10px 0;
+      padding-left: 20px;
+      font-size: 13px;
+      color: #5e6c84;
+    }
+    li {
+      margin: 5px 0;
+    }
+  </style>
+</head>
+<body>
+  <h2>📊 Lock Status</h2>
+  <div class="status">
+    <p><strong>✅ Power-Up Active</strong></p>
+    <p id="lockCount">Checking locked lists...</p>
+  </div>
+
+  <h2>📝 Quick Guide</h2>
+  <ul>
+    <li>Open any list menu (···)</li>
+    <li>Click "🔒 Lock List Title"</li>
+    <li>Locked lists show a 🔒 badge</li>
+    <li>Unlock when you need to rename</li>
+  </ul>
+
+  <script>
+    var t = TrelloPowerUp.iframe();
+
+    // Show lock status from board-level data
+    t.get('board', 'shared', 'lockedListCount')
+      .then(function(count) {
+        if (count && count > 0) {
+          document.getElementById('lockCount').textContent =
+            count + ' list' + (count !== 1 ? 's' : '') + ' currently locked';
+        } else {
+          document.getElementById('lockCount').textContent =
+            'No lists locked yet. Use list menu (\u00B7\u00B7\u00B7) to lock.';
+        }
+      })
+      .catch(function() {
+        document.getElementById('lockCount').textContent =
+          'Use list menu (\u00B7\u00B7\u00B7) to lock list titles.';
+      });
+  </script>
+</body>
+</html>

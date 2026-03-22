@@ -94,16 +94,20 @@ Before you start, make sure you have:
 ## Step 2.4: Upload Your Power-Up Files
 
 1. **Download the Power-Up files** from this repository
-2. **In Glitch**, drag and drop these files:
+2. **In Glitch**, create a folder called `public` first
+3. **Upload these files to the ROOT** of your Glitch project:
    - `server.js`
-   - `client.js`
-   - `index.html`
-   - `info.html`
    - `manifest.json`
    - `package.json`
    - `glitch.json`
+4. **Upload these files INSIDE the `public/` folder:**
+   - `public/client.js`
+   - `public/index.html`
+   - `public/info.html`
 
-3. **Wait** for files to upload (you'll see them appear on the left)
+5. **Wait** for files to upload (you'll see them appear on the left)
+
+**Important:** The `public/` folder holds the files Trello loads. The server code stays in the root so it's not exposed publicly.
 
 ## Step 2.5: Configure Environment Variables
 
@@ -115,6 +119,7 @@ Before you start, make sure you have:
 TRELLO_API_KEY=
 TRELLO_TOKEN=
 CALLBACK_URL=
+TRELLO_PLUGIN_ID=
 ```
 
 4. **Fill in your values:**
@@ -123,6 +128,7 @@ CALLBACK_URL=
 TRELLO_API_KEY=a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6
 TRELLO_TOKEN=z9y8x7w6v5u4t3s2r1q0p9o8n7m6l5k4j3i2h1g0f9e8d7c6b5a4a3a2a1a0a9a8a7a6
 CALLBACK_URL=https://YOUR-PROJECT-NAME.glitch.me
+TRELLO_PLUGIN_ID=
 ```
 
 5. **For CALLBACK_URL:**
@@ -131,11 +137,17 @@ CALLBACK_URL=https://YOUR-PROJECT-NAME.glitch.me
    - Your URL is: `https://aromatic-substantial-brain.glitch.me`
    - Replace "YOUR-PROJECT-NAME" with your actual project name
 
+6. **For TRELLO_PLUGIN_ID (fill this in after Step 3):**
+   - You'll get this after creating your Power-Up in Step 3
+   - It's in the URL: `https://trello.com/power-ups/PLUGIN_ID/edit`
+   - Come back and fill it in after Step 3.4
+
 **Example complete .env file:**
 ```
 TRELLO_API_KEY=a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6
 TRELLO_TOKEN=z9y8x7w6v5u4t3s2r1q0p9o8n7m6l5k4j3i2h1g0f9e8d7c6b5a4a3a2a1a0a9a8a7a6
 CALLBACK_URL=https://aromatic-substantial-brain.glitch.me
+TRELLO_PLUGIN_ID=507f1f77bcf86cd799439011
 ```
 
 ## Step 2.6: Test Your Deployment

@@ -8,6 +8,7 @@
   "capabilities": [
     "board-buttons",
     "list-actions",
+    "list-badges",
     "authorization-status",
     "show-authorization"
   ],

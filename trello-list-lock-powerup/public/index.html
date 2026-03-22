@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="https://p.trellocdn.com/power-up.min.css">
+  <script src="https://p.trellocdn.com/power-up.min.js"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif;
+      padding: 20px;
+      margin: 0;
+      background: white;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .icon {
+      font-size: 48px;
+      margin-bottom: 10px;
+    }
+    h1 {
+      font-size: 20px;
+      margin: 0 0 10px 0;
+      color: #172b4d;
+    }
+    .description {
+      font-size: 14px;
+      color: #5e6c84;
+      margin-bottom: 20px;
+    }
+    .info-box {
+      background: #f4f5f7;
+      border-radius: 3px;
+      padding: 15px;
+      margin: 15px 0;
+    }
+    .info-box h3 {
+      margin: 0 0 10px 0;
+      font-size: 14px;
+      color: #172b4d;
+    }
+    .info-box p {
+      margin: 5px 0;
+      font-size: 13px;
+      color: #5e6c84;
+      line-height: 1.5;
+    }
+    .info-box ul {
+      margin: 10px 0;
+      padding-left: 20px;
+    }
+    .info-box li {
+      font-size: 13px;
+      color: #5e6c84;
+      margin: 5px 0;
+    }
+    .success {
+      background: #e3fcef;
+      border-left: 3px solid #61bd4f;
+    }
+    .warning {
+      background: #fff4e6;
+      border-left: 3px solid #f2d600;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="icon">🔒</div>
+    <h1>List Title Lock Power-Up</h1>
+    <p class="description">Protect your Butler Automations by preventing accidental list name changes</p>
+  </div>
+
+  <div class="info-box success">
+    <h3>✅ Power-Up Active</h3>
+    <p>The List Title Lock Power-Up is now active on this board!</p>
+  </div>
+
+  <div class="info-box">
+    <h3>How to Use:</h3>
+    <ul>
+      <li><strong>Click on any list menu (···)</strong> to see lock options</li>
+      <li><strong>Select "🔒 Lock List Title"</strong> to protect the list name</li>
+      <li><strong>Select "🔓 Unlock List Title"</strong> to allow editing again</li>
+      <li>Locked lists show a 🔒 badge on the list</li>
+    </ul>
+  </div>
+
+  <div class="info-box warning">
+    <h3>⚠️ Important Notes:</h3>
+    <ul>
+      <li>Only board admins can lock/unlock lists</li>
+      <li>Locked lists cannot be renamed by anyone (including admins)</li>
+      <li>To rename a locked list, unlock it first</li>
+      <li>This helps prevent Butler Automation breakage!</li>
+    </ul>
+  </div>
+
+  <div class="info-box">
+    <h3>💡 Pro Tip:</h3>
+    <p>Lock all lists that are used in Butler Automations to ensure your workflows never break due to accidental renaming!</p>
+  </div>
+
+  <script src="./client.js"></script>
+</body>
+</html>

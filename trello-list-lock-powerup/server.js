@@ -11,16 +11,16 @@ const crypto = require('crypto');
 
 const app = express();
 app.use(bodyParser.json());
-app.use(express.static('.')); // Serve Power-Up files
 
 // Configuration - Set these as environment variables
 const TRELLO_API_KEY = process.env.TRELLO_API_KEY || 'your-api-key';
 const TRELLO_TOKEN = process.env.TRELLO_TOKEN || 'your-token';
+const TRELLO_PLUGIN_ID = process.env.TRELLO_PLUGIN_ID || '';
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || crypto.randomBytes(32).toString('hex');
 const PORT = process.env.PORT || 3000;
 
-// Store locked list data (in production, use a database)
-const lockedLists = new Map();
+// Serve only the public-facing Power-Up files (not server code or .env)
+app.use(express.static('public'));
 
 // Activity log for debugging and monitoring (keep last 50 events)
 const activityLog = [];
@@ -139,7 +139,6 @@ app.post('/webhook', async (req, res) => {
   stats.totalWebhooks++;
 
   const action = req.body.action;
-  const model = req.body.model;
 
   // Log all webhook events for debugging
   logActivity('webhook', `Received webhook: ${action?.type || 'unknown'}`, {
@@ -171,12 +170,21 @@ app.post('/webhook', async (req, res) => {
       const listData = await getList(listId);
 
       if (listData && listData.pluginData) {
-        // Check if list is locked
-        const lockData = listData.pluginData.find(
-          pd => pd.idPlugin === TRELLO_API_KEY && pd.scope === 'list'
-        );
+        // Find lock data by checking all plugin data entries for this list.
+        // Match by TRELLO_PLUGIN_ID if configured, otherwise search all entries
+        // for one that contains our lock data structure.
+        const lockData = listData.pluginData.find(pd => {
+          if (pd.scope !== 'list') return false;
+          if (TRELLO_PLUGIN_ID && pd.idPlugin !== TRELLO_PLUGIN_ID) return false;
+          try {
+            const val = JSON.parse(pd.value);
+            return val.shared && typeof val.shared.isLocked !== 'undefined';
+          } catch {
+            return false;
+          }
+        });
 
-        if (lockData && lockData.value) {
+        if (lockData) {
           try {
             const pluginData = JSON.parse(lockData.value);
             if (pluginData.shared && pluginData.shared.isLocked) {
@@ -372,6 +380,12 @@ app.get('/dashboard', (req, res) => {
       </div>
 
       <script>
+        function escapeHtml(str) {
+          var div = document.createElement('div');
+          div.appendChild(document.createTextNode(str));
+          return div.innerHTML;
+        }
+
         function loadData() {
           fetch('/api/stats')
             .then(r => r.json())
@@ -390,10 +404,10 @@ app.get('/dashboard', (req, res) => {
                   return \`
                     <div class="log-entry">
                       <div>
-                        <span class="log-type log-type-\${entry.type}">\${entry.type}</span>
-                        \${entry.message}
+                        <span class="log-type log-type-\${escapeHtml(entry.type)}">\${escapeHtml(entry.type)}</span>
+                        \${escapeHtml(entry.message)}
                       </div>
-                      <div class="log-time">\${time}</div>
+                      <div class="log-time">\${escapeHtml(time)}</div>
                     </div>
                   \`;
                 }).join('');
